@@ -5,51 +5,48 @@
 # 	Added SSH using Net::OpenSSH
 # Version 2.0.2 -
 #	Added device folder creation
-# 
+# Version 2.0.3 -
+#	Add file based config method
+#
 # Features to add in next version -
-# 	Use config file rather then cmd vars
 # 	File mount check
 #
-# 
 
 use strict;
 use warnings;
 use DateTime;
 use Net::OpenSSH;
+use Config::Tiny;
 
 # Input variable check
 if (! defined($ARGV[0])) {
-	print "No device list defined!\n";
-	print "Syntax: f5backup.pl [device_list] [backup_directory]\n\n";
+	print "No config file defined!\n";
+	print "Syntax: f5backup.pl [config_file]\n\n";
 	exit;
 } elsif ($ARGV[0] eq "-h" || $ARGV[0] eq "--help") {
-	print "Syntax: f5backup.pl [device_list] [backup_directory]\n\n";
-	exit;
-} elsif (! defined($ARGV[1])) {
-	print "No directory define.\n";
-	print "Syntax: f5backup.pl [device_list] [backup_directory]\n\n";
+	print "Syntax: f5backup.pl [config_file]\n\n";
 	exit;
 };
 
-# Set directory 
-my $DIR = $ARGV[1];
+# Get contents of config file
+my $config = Config::Tiny->read($ARGV[0]);
 
-# Set number of file to maintain
-my $ARCHIVE_SIZE = 15;
+# Set VAR of config elements
+my $DIR = $config->{_}->{DIRECTORY};
+my $ARCHIVE_SIZE = $config->{_}->{ARCHIVE_SIZE};
+my $DEVICE_LIST = $config->{_}->{DEVICE_LIST};
+my $SSH_KEY = $config->{_}->{SSH_KEY};
 
 # Set date
 my $DATE = DateTime->now->ymd("-");
 
-# SSH values
-my $ssh_key = "/root/.ssh/id_rsa";
-
-# Open arrays for logging
+# Open files/arrays for logging
 open LOG,"+>$DIR/log/$DATE-backup.log";
 print LOG "Starting configuration backup on $DATE at ",DateTime->now->hms,".\n";
 my @ERROR = "The following errors have occured:\n";
 
 # Open device list, set into array and chomp
-open DEVICE_LIST,"<$DIR$ARGV[0]" or die "Cannot open device list - $!\n";
+open DEVICE_LIST,"<$DIR/$DEVICE_LIST" or die "Cannot open device list - $!\n";
 my @DEVICE_LIST = <DEVICE_LIST>;
 chomp(@DEVICE_LIST);
 
@@ -61,7 +58,7 @@ foreach (@DEVICE_LIST) {
 	unless (opendir(DIRECTORY,"$DIR/devices/$_")) {
 		print LOG "Device directory $DIR/devices/$_ does not exist. Creating folder $_ at ",DateTime->now->hms,"\n";
 		my $NEW_DIR = "$DIR/devices/$_";
-		mkdir $NEW_DIR,0700 ;
+		mkdir $NEW_DIR,0755 ;
 		#or push(@ERROR,"Error: Cannot create folder $_ - $!\n") 
 		#	and print LOG "Error: Cannot create folder $_ - $!\n" 
 		#	and net;
@@ -70,16 +67,19 @@ foreach (@DEVICE_LIST) {
 	# Open SSH connection to host
 	my $ssh = Net::OpenSSH->new($_,
 		user=>'root',
-		key_path=>$ssh_key,
+		key_path=>$SSH_KEY,
 	);
 	$ssh->error and push(@ERROR,"Error: Can't connect to $_ - ",$ssh->error," $!\n") 
 		and print LOG "Error: Can't connect to $_ - ",$ssh->error, "\n" and next;
+
 	# get hash from device and write to VAR
 	my ($NEW_HASH,$errput) = $ssh->capture2("tmsh list | sha1sum | cut -d ' ' -f1");
 	chomp ($NEW_HASH,$errput);
-	push(@ERROR,"Error:",$ssh->error," $!\n") 
-		and print LOG "Error: ",$ssh->error, " $!\n" 
-		and next if (length($errput) != 0);
+	if (length($errput) != 0) { 
+		push(@ERROR,"Error:",$ssh->error," $!\n") ;
+		print LOG "Error: ",$ssh->error, " $!\n" ;
+		next ;
+	}
 	print LOG "Hash for $_ is - $NEW_HASH.\n";
 	undef $errput;
 
@@ -128,7 +128,7 @@ foreach (@DEVICE_LIST) {
 #  Add deletion note to log file
 print LOG "\nDeleting old files:\n";
 
-# Keep only the number of files specified and write deletion to log
+# Keep only the number of UCS files specified by ARCHIVE_SIZE and write deletion to log
 foreach (@DEVICE_LIST) {
 	my $DEVICE = $_;
 	opendir(DIRECTORY,"$DIR/devices/$DEVICE") or push(@ERROR,"Error at ",DateTime->now->hms,": $!\n") and next;
@@ -141,7 +141,7 @@ foreach (@DEVICE_LIST) {
 	closedir DIRECTORY
 }
 
-# Delete old log files
+# Keep only the number of log files specified by ARCHIVE_SIZE and write deletion to log
 opendir(DIRECTORY,"/var/f5backup/log/") or push(@ERROR,"Error: $!\n") and next;
 my @DIRECTORY = readdir(DIRECTORY);
 @DIRECTORY = reverse sort grep(/backup.log/,@DIRECTORY);
@@ -151,7 +151,7 @@ foreach (@DIRECTORY[$ARCHIVE_SIZE..($#DIRECTORY)]) {
 };
 closedir DIRECTORY;
 
-# Check error file for lines
+# Check error file for lines, create error log if present
 if ($#ERROR > 0) {
 	print LOG "\nError: There are errors present. Please check the error log.\n";
 	open ERROR_LOG,"+>$DIR/log/$DATE-error.log";
