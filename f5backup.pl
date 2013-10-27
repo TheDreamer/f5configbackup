@@ -3,10 +3,11 @@
 # F5 Config backup 2.0 - Rewriten in perl
 # Version 2.0.1 -
 # 	Added SSH using Net::OpenSSH
-#
-# Features to add -
+# Version 2.0.2 -
+#	Added device folder creation
+# 
+# Features to add in next version -
 # 	Use config file rather then cmd vars
-# 	Add device folder creation
 # 	File mount check
 #
 # 
@@ -55,6 +56,16 @@ chomp(@DEVICE_LIST);
 # Loop though device list
 foreach (@DEVICE_LIST) {
 	print LOG "\nConnecting to $_ at ",DateTime->now->hms,".\n";
+
+	# Create device folder is it does not exist
+	unless (opendir(DIRECTORY,"$DIR/devices/$_")) {
+		print LOG "Device directory $DIR/devices/$_ does not exist. Creating folder $_ at ",DateTime->now->hms,"\n";
+		my $NEW_DIR = "$DIR/devices/$_";
+		mkdir $NEW_DIR,0700 ;
+		#or push(@ERROR,"Error: Cannot create folder $_ - $!\n") 
+		#	and print LOG "Error: Cannot create folder $_ - $!\n" 
+		#	and net;
+	};
 
 	# Open SSH connection to host
 	my $ssh = Net::OpenSSH->new($_,
@@ -117,7 +128,7 @@ foreach (@DEVICE_LIST) {
 #  Add deletion note to log file
 print LOG "\nDeleting old files:\n";
 
-# Keep only the the most current 15 files and write deletion to log
+# Keep only the number of files specified and write deletion to log
 foreach (@DEVICE_LIST) {
 	my $DEVICE = $_;
 	opendir(DIRECTORY,"$DIR/devices/$DEVICE") or push(@ERROR,"Error at ",DateTime->now->hms,": $!\n") and next;
