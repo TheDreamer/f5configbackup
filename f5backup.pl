@@ -19,9 +19,12 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
 
-# F5 Config backup 2.1 - Changed to subroutine format
+# F5 Config backup 2.1 - Made script more modular with subs
+# 
 # Version 2.1.1 -
 # 	Added Name/IP format to device list w/ comment and empty line exclusion
+# Version 2.1.1.5
+# 	Bug fix for new list format 
 #
 # Features to add -
 #	Separate config item for log archive
@@ -60,20 +63,28 @@ my $DATE = DateTime->now->ymd("-");
 ########################## DEFINE SUBS #####################################
 
 ############################################################################
-# ParseNameIP - Parse name & IP from device list
-# my ($NAME,$IP) = ParseNameIP $_;
+# ParseDeviceList - Parse name & IP from device list and output hash format
+# my %DEVICE_HASH = ParseDeviceList <DEVICE_LIST>;
 ############################################################################
-sub ParseNameIP {
-	my $element = $_[0];
-	my ($name,$ip) = ("","");
-	if ($element =~ "=") {
-		($name,$ip) = split("=",$element);
-	} else {
-		($name,$ip) = ($element,$element);
+sub ParseDeviceList {
+	my @DEVICES= @_;
+	# Exclude lines that are comments and blank
+	@DEVICES = grep (!(/#/|/^\n/),@DEVICES);
+	chomp(@DEVICES);
+	my @DEVICE_ARRAY;
+	foreach (@DEVICES) {
+		if ($_ =~ "=") {
+			my ($name,$ip) = split("=",$_);
+			push (@DEVICE_ARRAY,$name);
+			push (@DEVICE_ARRAY,$ip);
+		} else {
+			my ($name,$ip) = ($_,$_);
+			push (@DEVICE_ARRAY,$name);
+			push (@DEVICE_ARRAY,$ip);
+		};
 	};
-	return $name,$ip
-};
-
+	return @DEVICE_ARRAY;
+}
 ############################################################################
 # CreateDeviceDIR - Make a new device folder if does not exist
 # CreateDeviceDIR [DEVICE];
@@ -205,62 +216,57 @@ sub CleanLogs {
 open LOG,"+>$DIR/log/$DATE-backup.log";
 print LOG "Starting configuration backup on $DATE at ",DateTime->now->hms,".\n";
 
-# Open device list, set into array, exclude commented and empty lines, remove LF
+# Open device list, create device list hash
 open DEVICE_LIST,"<$DIR/$DEVICE_LIST" or die "Cannot open device list - $!.\n";
-my @DEVICE_LIST = <DEVICE_LIST>;
-@DEVICE_LIST = grep (!(/#/|/^\n/),@DEVICE_LIST);
-chomp(@DEVICE_LIST);
+my %DEVICE_HASH = ParseDeviceList <DEVICE_LIST>;
 
 
 # Loop though device list
-foreach (@DEVICE_LIST) {
-	# Parse name=ip from device list
-	my ($NAME,$IP) = ParseNameIP $_;
-
-	print LOG "\nConnecting to $NAME at ",DateTime->now->hms,".\n";
+foreach (keys %DEVICE_HASH) {
+	print LOG "\nConnecting to $_ at ",DateTime->now->hms,".\n";
 
 	# Create device folder is it does not exist
-	CreateDeviceDIR $NAME;
+	CreateDeviceDIR $_;
 
 	# Open SSH connection to host
-	my $ssh = Net::OpenSSH->new($IP,
+	my $ssh = Net::OpenSSH->new($DEVICE_HASH{$_},
 		user=>'root',
 		key_path=>$SSH_KEY,
 		master_stderr_discard => 1,
 		timeout => 5,
 	);
 	if (length($ssh->error) > 1) {
-		print LOG "Error at ",DateTime->now->hms,": Can't connect to $NAME - ",$ssh->error, ".\n" ;
+		print LOG "Error at ",DateTime->now->hms,": Can't connect to $_ - ",$ssh->error, ".\n" ;
 		$ERROR++ ;
 		next;
 	};
 
 	# get hash from device and write to VAR
-	my $NEW_HASH = GetHash($NAME,$ssh);
+	my $NEW_HASH = GetHash($_,$ssh);
 
 	# Check for new hash and break if it does not exist
 	if (! defined($NEW_HASH) || length $NEW_HASH != 40) {
-		print LOG "Get HASH failed for $NAME at ",DateTime->now->hms,". Skipping to next device.\n";
+		print LOG "Get HASH failed for $_ at ",DateTime->now->hms,". Skipping to next device.\n";
 		$ERROR++;
 		next;
 	};
 
 	# Check for old hash. if not present the set OLD_HASH to null
 	my $OLD_HASH = "";
-	if (open DEVICE_HASH,"<$DIR/devices/$NAME/backup-hash") {
+	if (open DEVICE_HASH,"<$DIR/devices/$_/backup-hash") {
 		$OLD_HASH = <DEVICE_HASH> ;
 		close DEVICE_HASH;
 	};
 
 	# Compare old hash to new hash
 	if ($OLD_HASH eq $NEW_HASH) {
-		print LOG "Hashes match for $NAME at ",DateTime->now->hms,". Configuration unchanged. Skipping download.\n";
+		print LOG "Hashes match for $_ at ",DateTime->now->hms,". Configuration unchanged. Skipping download.\n";
 	} else {
 		# Make device create UCS file, Download UCS file, Disconnect SSH session, Write new hash to file
-		CreateUCS($NAME,$ssh);
-		GetUCS($NAME,$ssh);
+		CreateUCS($_,$ssh);
+		GetUCS($_,$ssh);
 		undef $ssh;
-		WriteHash($NAME,$NEW_HASH);
+		WriteHash($_,$NEW_HASH);
 	};
 };
 
@@ -268,7 +274,7 @@ foreach (@DEVICE_LIST) {
 print LOG "\nDeleting old files:\n";
 
 # Keep only the number of UCS files specified by ARCHIVE_SIZE and write deletion to log
-CleanArchive @DEVICE_LIST;
+CleanArchive keys %DEVICE_HASH;
 
 # Keep only the number of log files specified by ARCHIVE_SIZE and write deletion to log
 CleanLogs;
