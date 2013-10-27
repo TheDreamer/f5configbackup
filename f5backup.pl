@@ -29,6 +29,9 @@
 #	Separate directory for device archive
 #	Fixed time localization	
 # 	Fixed bug for log directory location
+# Version 2.1.2.5 - 
+#	fixed open file arguments  
+#
 #
 
 use strict;
@@ -107,7 +110,6 @@ sub CreateDeviceDIR {
 			$ERROR++;
 			next;
 		};
-		undef $NEW_DIR;
 	};
 };
 
@@ -125,7 +127,6 @@ sub GetHash {
 		next ;
 	};
 	print LOG "Hash for $DEVICE is - $HASH.\n";
-	undef $errput;
 	return $HASH
 };
 
@@ -139,7 +140,6 @@ sub CreateUCS {
 	my ($output,$errput) = $SSH->capture2("tmsh save sys ucs /shared/tmp/backup.ucs");
 	chomp ($output,$errput);
 	print LOG "Making device create UCS - $errput.\n" ;
-	undef $output;
 };
 
 ############################################################################
@@ -165,7 +165,7 @@ sub GetUCS {
 sub WriteHash {
 	my ($DEVICE,$HASH) = (@_);
 	print LOG "Overwriting old hash file at ",hms_time,".\n";
-	if (open(HASH,"+>$ARCHIVE_DIR/$DEVICE/backup-hash")) {
+	if (open HASH,"+>","$ARCHIVE_DIR/$DEVICE/backup-hash") {
 		print HASH $HASH ;
 		close HASH;
 	} else {
@@ -221,11 +221,11 @@ sub CleanLogs {
 ############################################################################################
 
 # Open files/arrays for logging
-open LOG,"+>$DIR/log/$DATE-backup.log";
+open LOG,"+>","$DIR/log/$DATE-backup.log";
 print LOG "Starting configuration backup on $DATE at ",hms_time,".\n";
 
 # Open device list, create device list hash
-open DEVICE_LIST,"<$DIR/$DEVICE_LIST" or die "Cannot open device list - $!.\n";
+open DEVICE_LIST,"<","$DIR/$DEVICE_LIST" or die "Cannot open device list - $!.\n";
 my %DEVICE_HASH = ParseDeviceList <DEVICE_LIST>;
 
 
@@ -261,7 +261,7 @@ foreach (keys %DEVICE_HASH) {
 
 	# Check for old hash. if not present the set OLD_HASH to null
 	my $OLD_HASH = "";
-	if (open DEVICE_HASH,"<$ARCHIVE_DIR/$_/backup-hash") {
+	if (open DEVICE_HASH,"<","$ARCHIVE_DIR/$_/backup-hash") {
 		$OLD_HASH = <DEVICE_HASH> ;
 		close DEVICE_HASH;
 	};
