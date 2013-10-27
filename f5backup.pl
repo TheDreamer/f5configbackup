@@ -1,18 +1,20 @@
 #!/bin/perl
 
-# F5 Config backup 2.0 - Port to perl
+# F5 Config backup 2.0 - Rewriten in perl
+# Version 2.0.1 -
+# 	Added SSH using Net::OpenSSH
 #
-# To do -
+# Features to add -
 # 	Use config file rather then cmd vars
 # 	Add device folder creation
-# 	Use perl module for SSH/SCP
-# 
+# 	File mount check
 #
 # 
 
 use strict;
 use warnings;
 use DateTime;
+use Net::OpenSSH;
 
 # Input variable check
 if (! defined($ARGV[0])) {
@@ -37,6 +39,9 @@ my $ARCHIVE_SIZE = 15;
 # Set date
 my $DATE = DateTime->now->ymd("-");
 
+# SSH values
+my $ssh_key = "/root/.ssh/id_rsa";
+
 # Open arrays for logging
 open LOG,"+>$DIR/log/$DATE-backup.log";
 print LOG "Starting configuration backup on $DATE at ",DateTime->now->hms,".\n";
@@ -51,10 +56,21 @@ chomp(@DEVICE_LIST);
 foreach (@DEVICE_LIST) {
 	print LOG "\nConnecting to $_ at ",DateTime->now->hms,".\n";
 
+	# Open SSH connection to host
+	my $ssh = Net::OpenSSH->new($_,
+		user=>'root',
+		key_path=>$ssh_key,
+	);
+	$ssh->error and push(@ERROR,"Error: Can't connect to $_ - ",$ssh->error," $!\n") 
+		and print LOG "Error: Can't connect to $_ - ",$ssh->error, "\n" and next;
 	# get hash from device and write to VAR
-	my $NEW_HASH = `ssh root\@$_ tmsh list | sha1sum | cut -d ' ' -f1` or push(@ERROR,"Error: $!\n") and print LOG "Error: $!\n" and next;
-	chomp $NEW_HASH;
+	my ($NEW_HASH,$errput) = $ssh->capture2("tmsh list | sha1sum | cut -d ' ' -f1");
+	chomp ($NEW_HASH,$errput);
+	push(@ERROR,"Error:",$ssh->error," $!\n") 
+		and print LOG "Error: ",$ssh->error, " $!\n" 
+		and next if (length($errput) != 0);
 	print LOG "Hash for $_ is - $NEW_HASH.\n";
+	undef $errput;
 
 	# Check for new hash and break if it does not exist
 	if (! defined($NEW_HASH) || length $NEW_HASH != 40) {
@@ -74,10 +90,22 @@ foreach (@DEVICE_LIST) {
 	if ($OLD_HASH eq $NEW_HASH) {
 		print LOG "Hashes match for $_ at ",DateTime->now->hms,". Configuration unchanged. Skipping download.\n";
 	} else {
-		# Download backup file
+		# Make device create UCS file
 		print LOG "Hashes do not match for $_ at ",DateTime->now->hms,". Downloading backup file.\n";
-		print LOG `ssh root\@$_ tmsh save sys ucs /shared/tmp/backup.ucs` or push(@ERROR,"Error - Unable to create UCS file at ",DateTime->now->hms," $!\n") and print LOG "Error - Unable to create UCS file at ",DateTime->now->hms," $!\n" and next;
-		print LOG `scp -r root\@$_:/var/tmp/backup.ucs /var/f5backup/devices/$_/$DATE-$_-backup.ucs`;
+		my ($output,$errput) = $ssh->capture2("tmsh save sys ucs /shared/tmp/backup.ucs");
+		chomp ($output,$errput);
+		print LOG "Making device create UCS - $errput\n" ;
+		print LOG "Result - $output\n";
+		undef $output,$errput;
+
+		# Download file
+		print LOG "Downloading UCS file at ",DateTime->now->hms,"\n";
+		my $UCS_FILE = "/var/f5backup/devices/$_/$DATE-$_-backup.ucs";
+		$ssh->scp_get({},'/shared/tmp/backup.ucs',$UCS_FILE);
+		$ssh->error and push(@ERROR,"Error: File download failed for $_ - ",$ssh->error," $!\n") 
+			and print LOG "Error: File download failed - ",$ssh->error, "\n" and next;
+		undef $ssh;
+
 		# Write new hash to file
 		print LOG "Overwriting old hash file at ",DateTime->now->hms,"\n";
 		open NEW_HASH,"+>$DIR/devices/$_/backup-hash";
