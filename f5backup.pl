@@ -19,18 +19,16 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
 
-# F5 Config backup 2.1  
-# Version 2.1.1 -
-# 	Added Name/IP format to device list w/ comment and empty line exclusion
-# Version 2.1.1.5 -
-# 	Bug fix for new list format and 
-# Version 2.1.2 -
-#	Separate config item for log & UCS archives
-#	Separate directory for device archive
-#	Fixed time localization	
-# 	Fixed bug for log directory location
-# Version 2.1.2.5 - 
-#	fixed open file arguments  
+# F5 Config backup 2.4 - 
+#	Added SQLite DB for back records
+#	Changed config change detection from hash to CID time
+#	Added password based login and removed SSH key login
+#	Added TMSH detection to allow non root login
+#	Other misc fixes
+#
+# To do -
+# 	figure out a better way to detect TMSH
+# 	need new devices to update IP
 #
 #
 
@@ -39,6 +37,7 @@ use warnings;
 use DateTime;
 use Net::OpenSSH;
 use Config::Tiny;
+use DBI;
 
 # Input variable check
 if (! defined($ARGV[0])) {
@@ -59,8 +58,15 @@ my $ARCHIVE_DIR = $config->{_}->{ARCHIVE_DIRECTORY};
 my $UCS_ARCHIVE_SIZE = $config->{_}->{UCS_ARCHIVE_SIZE};
 my $LOG_ARCHIVE_SIZE = $config->{_}->{LOG_ARCHIVE_SIZE};
 my $DEVICE_LIST = $config->{_}->{DEVICE_LIST};
-my $SSH_KEY = $config->{_}->{SSH_KEY};
+my $USERNAME = $config->{_}->{USERNAME};
+my $PASS_FILE = $config->{_}->{PASS_FILE};
+my $DB_FILE = $config->{_}->{DB_FILE};
+
+# Declare VARs for subs
 my $ERROR = 0;
+my %DEVICE_HASH;
+my $START = 0;
+my $dbh;
 
 # Set date
 my $DATE = DateTime->now(time_zone=>'local')->ymd("-");
@@ -91,17 +97,54 @@ sub ParseDeviceList {
 			push (@DEVICE_ARRAY,$ip);
 		} else {
 			push (@DEVICE_ARRAY,$_);
-			push (@DEVICE_ARRAY,$_);
+			push (@DEVICE_ARRAY,"NULL");
 		};
 	};
 	return @DEVICE_ARRAY;
-}
+};
+
+############################################################################
+# OrphansDBDelete - Remove orphaned devices from DB
+############################################################################
+sub OrphansDBDelete {
+	# Check DB for orphaned devices 
+	if ($START) {
+		my @names_temp1 = @{$dbh->selectcol_arrayref("SELECT NAME FROM DEVICES")};
+		my @devices_temp1 = (keys %DEVICE_HASH);
+		foreach (@names_temp1) {
+			if ( "@devices_temp1" !~ "$_") {
+				print LOG "Device $_ no longer in device list. Removing from DB at ",hms_time,".\n";
+				unless ( $dbh->do("DELETE FROM DEVICES WHERE NAME = '$_'") ) {
+					print LOG "Error at ",hms_time,": Can't delete $_ from DB\n" ;
+				};
+			};
+		};
+	};
+};
+
+############################################################################
+# NewDeviceDB - Add/Update new devices in DB
+############################################################################
+sub NewDeviceDB {
+	if ($START) {
+		foreach (keys %DEVICE_HASH) {
+			if (! join '',$dbh->selectrow_array("SELECT count('NAME') FROM DEVICES WHERE NAME = '$_'")) {
+				my $time = time;
+				print LOG "Device $_ is not in database. Adding to DB at ",hms_time,".\n";
+				unless ( $dbh->do("INSERT INTO DEVICES ('NAME','IP','CID_TIME','DATE_ADDED') 
+									VALUES ('$_','$DEVICE_HASH{$_}','0',$time)") ) {
+					print LOG "Error at ",hms_time,": Can't INSERT $_ to DB\n" ;
+				};
+			};
+		};
+	};
+};
 ############################################################################
 # CreateDeviceDIR - Make a new device folder if does not exist
 # CreateDeviceDIR [DEVICE];
 ############################################################################
 sub CreateDeviceDIR {
-	my ($DEVICE) = (@_);
+	my $DEVICE = @_;
 	unless (opendir(DIRECTORY,"$ARCHIVE_DIR/$DEVICE")) {
 		print LOG "Device directory $ARCHIVE_DIR/$DEVICE does not exist. Creating folder $DEVICE at ",hms_time,".\n";
 		my $NEW_DIR = "$ARCHIVE_DIR/$DEVICE";
@@ -114,20 +157,27 @@ sub CreateDeviceDIR {
 };
 
 ############################################################################
-# GetHash - Get the config hash from device
-# my $NEW_HASH = GetHash([device],[ssh_handle]);
+# GetCIDtime & ParseDBkey - Get the CID time from device
+# my $new_cid_time = GetCIDtime([device],[ssh_handle]);
 ############################################################################
-sub GetHash {
+sub ParseDBkey {
+	my $text = join '',@_;
+	$text = join '',($text =~ /"(.+?)"/);
+	return $text;
+};
+
+sub GetCIDtime {
 	my ($DEVICE,$SSH) = (@_);
-	my ($HASH,$errput) = $SSH->capture2("tmsh list | sha1sum | cut -d ' ' -f1");
-	chomp ($HASH,$errput);
-	if (length($errput) != 0) { 
-		print LOG "Error: Get hash failed for $DEVICE: $errput.\n" ;
-		$ERROR++;
-		next ;
+	my ($output,$errput) = $SSH->capture2("echo tmsh");
+	chomp ($output,$errput);
+	my $DB_KEY;
+	if ($output eq "tmsh")  {
+		$DB_KEY = ParseDBkey $SSH->capture("tmsh list sys db configsync.localconfigtime");
+	} else {
+		$DB_KEY = ParseDBkey $SSH->capture("list sys db configsync.localconfigtime");
 	};
-	print LOG "Hash for $DEVICE is - $HASH.\n";
-	return $HASH
+	print LOG "CID time for $DEVICE is - $DB_KEY.\n";
+	return $DB_KEY
 };
 
 ############################################################################
@@ -136,9 +186,16 @@ sub GetHash {
 ############################################################################
 sub CreateUCS {
 	my ($DEVICE,$SSH) = (@_);
-	print LOG "Hashes do not match for $DEVICE at ",hms_time,". Downloading backup file.\n";
-	my ($output,$errput) = $SSH->capture2("tmsh save sys ucs /shared/tmp/backup.ucs");
-	chomp ($output,$errput);
+	print LOG "CID times do not match for $DEVICE at ",hms_time,". Downloading backup file.\n";
+	my ($tmsh,$discard) = $SSH->capture2("echo tmsh");
+	chomp $tmsh;
+	my ($output,$errput);
+	if ($tmsh eq "tmsh")  {
+		($output,$errput) = $SSH->capture2("tmsh save sys ucs /shared/tmp/backup.ucs");
+	} else {
+		($output,$errput) = $SSH->capture2("save sys ucs /shared/tmp/backup.ucs");
+	};
+	chomp $errput;
 	print LOG "Making device create UCS - $errput.\n" ;
 };
 
@@ -155,22 +212,6 @@ sub GetUCS {
 		print LOG "Error: UCS file download failed - ",$SSH->error, ".\n" ;
 		$ERROR++;
 		next;
-	};
-};
-
-############################################################################
-# WriteHASH - write new hash to file
-# WriteHash([device],[hash]);
-############################################################################
-sub WriteHash {
-	my ($DEVICE,$HASH) = (@_);
-	print LOG "Overwriting old hash file at ",hms_time,".\n";
-	if (open HASH,"+>","$ARCHIVE_DIR/$DEVICE/backup-hash") {
-		print HASH $HASH ;
-		close HASH;
-	} else {
-		print LOG "Error: Could not write new hash file for $DEVICE - $! .\n" ;
-		$ERROR++;
 	};
 };
 
@@ -220,26 +261,55 @@ sub CleanLogs {
 # *************************************** MAIN PROGRAM *************************************
 ############################################################################################
 
+$START = 1;
+
 # Open files/arrays for logging
 open LOG,"+>","$DIR/log/$DATE-backup.log";
 print LOG "Starting configuration backup on $DATE at ",hms_time,".\n";
 
 # Open device list, create device list hash
 open DEVICE_LIST,"<","$DIR/$DEVICE_LIST" or die "Cannot open device list - $!.\n";
-my %DEVICE_HASH = ParseDeviceList <DEVICE_LIST>;
+%DEVICE_HASH = ParseDeviceList <DEVICE_LIST>;
+close DEVICE_LIST;
 
+# Get password from file
+open PSWD,"<","$PASS_FILE" or die "Error at ",hms_time,": Can't open password file - $!\n" ;
+my $PASSWORD = <PSWD>;
+chomp $PASSWORD;
+close PSWD;
+
+# Connect to DB
+$dbh = DBI->connect(          
+    "dbi:SQLite:dbname=$DB_FILE", 
+    "",
+    "",
+    { RaiseError => 1}
+) or die $DBI::errstr;
+
+# Remove orphaned devices from DB
+OrphansDBDelete;
+
+# Add new devices to DB
+NewDeviceDB;
+
+# Get device names from DB
+my @DEVICES_NAMES = @{$dbh->selectcol_arrayref("SELECT NAME FROM DEVICES")};
 
 # Loop though device list
-foreach (keys %DEVICE_HASH) {
+foreach (@DEVICES_NAMES) {
 	print LOG "\nConnecting to $_ at ",hms_time,".\n";
 
 	# Create device folder is it does not exist
 	CreateDeviceDIR $_;
 
+	# Get IP from DB or set to hostname if NULL
+	my $IP = join '',$dbh->selectrow_array("SELECT IP FROM DEVICES WHERE NAME = '$_'");
+	$IP = $_ if ($IP eq 'NULL');
+	
 	# Open SSH connection to host
-	my $ssh = Net::OpenSSH->new($DEVICE_HASH{$_},
-		user=>'root',
-		key_path=>$SSH_KEY,
+	my $ssh = Net::OpenSSH->new($IP,
+		user=>$USERNAME,
+		passwd =>$PASSWORD,
 		master_stderr_discard => 1,
 		timeout => 5,
 	);
@@ -249,32 +319,33 @@ foreach (keys %DEVICE_HASH) {
 		next;
 	};
 
-	# get hash from device and write to VAR
-	my $NEW_HASH = GetHash($_,$ssh);
+	# get cid time from device and write to VAR
+	my $new_cid_time = GetCIDtime($_,$ssh);
 
-	# Check for new hash and break if it does not exist
-	if (! defined($NEW_HASH) || length $NEW_HASH != 40) {
-		print LOG "Get HASH failed for $_ at ",hms_time,". Skipping to next device.\n";
+	# Check for new cid time and break if it does not exist
+	if (! defined $new_cid_time) {
+		print LOG "Get CID time failed for $_ at ",hms_time,". Skipping to next device.\n";
 		$ERROR++;
 		next;
 	};
 
-	# Check for old hash. if not present the set OLD_HASH to null
-	my $OLD_HASH = "";
-	if (open DEVICE_HASH,"<","$ARCHIVE_DIR/$_/backup-hash") {
-		$OLD_HASH = <DEVICE_HASH> ;
-		close DEVICE_HASH;
-	};
-
-	# Compare old hash to new hash
-	if ($OLD_HASH eq $NEW_HASH) {
-		print LOG "Hashes match for $_ at ",hms_time,". Configuration unchanged. Skipping download.\n";
+	# Get old CID time from DB
+	my $old_cid_time = join '',$dbh->selectrow_array("SELECT CID_TIME FROM DEVICES WHERE NAME = '$_'"),"\n";
+	chomp $old_cid_time;
+	
+	# Compare old cid time to new cid time
+	if ($old_cid_time eq $new_cid_time) {
+		print LOG "CID times match for $_ at ",hms_time,". Configuration unchanged. Skipping download.\n";
 	} else {
-		# Make device create UCS file, Download UCS file, Disconnect SSH session, Write new hash to file
+		# Make device create UCS file, Download UCS file, Disconnect SSH session, Write new cid time to DB
+		my $time = time;
 		CreateUCS($_,$ssh);
 		GetUCS($_,$ssh);
 		undef $ssh;
-		WriteHash($_,$NEW_HASH);
+		unless ( $dbh->do("UPDATE DEVICES SET CID_TIME = '$new_cid_time', 
+			LAST_DATE = $time WHERE NAME = '$_'") ) {
+			print LOG "Error at ",hms_time,": Can't INSERT CID time $_ into DB\n" ;
+		};
 	};
 };
 
