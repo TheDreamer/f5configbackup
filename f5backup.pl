@@ -28,7 +28,8 @@
 #	Revamped shell detection
 #	Fixed device dir creation bug
 #	IP is updated in DB if a device IP changes in the device file
-#
+# Version 2.4.4 -
+#	Added job reporting table to DB
 #
 
 use strict;
@@ -66,6 +67,9 @@ my $ERROR = 0;
 my %DEVICE_HASH;
 my $START = 0;
 my $dbh;
+my $JOB_ID;
+my @DEVICE_W_ERRORS;
+my $DEVICE_COMPLETE = 0;
 
 # Set date
 my $DATE = DateTime->now(time_zone=>'local')->ymd("-");
@@ -77,6 +81,54 @@ my $DATE = DateTime->now(time_zone=>'local')->ymd("-");
 ############################################################################
 sub hms_time {
 	DateTime->now(time_zone=>'local')->hms;
+};
+############################################################################
+# IncERROR - Increment the error counter in the DB
+# IncERROR <optional device name>; or IncERROR 0;
+############################################################################
+sub IncERROR {
+	if ($START) {
+		my ($DEVICE) = @_;
+		$ERROR++;
+		push @DEVICE_W_ERRORS,"$DEVICE" if (length $DEVICE);
+		unless ( $dbh->do("UPDATE JOBS SET ERRORS = $ERROR, 
+					DEVICE_W_ERRORS = '@DEVICE_W_ERRORS' WHERE ID = $JOB_ID") ) {
+			print LOG "Error at ",hms_time,": Can't write ERRORS to DB .\n" ;
+		};		
+	};
+};
+
+############################################################################
+# DBJobID - Creates/overwrites job DB entry and returns row ID
+# my $JOB_ID = LogJobDB;
+############################################################################
+sub DBJobID {
+	if ($START) {
+		my $START_TIME = time;
+		print LOG "Adding record to JOB DB table at ",hms_time,".\n";
+		# Does job w/ same date exsit ?
+		my $ROW = join '',$dbh->selectrow_array("SELECT ID FROM JOBS WHERE DATE = '$DATE'");
+		if ($ROW) {
+			# Yes - Overwrite row
+			print LOG "Job exists for this date $DATE. Overwriting old DB record at ",hms_time,"\n";
+			unless ($dbh->do("UPDATE JOBS SET TIME = $START_TIME, COMPLETE = 0, 
+									ERRORS = 0, DEVICE_TOTAL = 0,	DEVICE_COMPLETE = 0, 
+									DEVICE_W_ERRORS = ''	WHERE DATE = '$DATE'")) {
+				print LOG "Error at ",hms_time,": Can't create new row in JOBS table.\n" ;
+				IncERROR 0;
+			};
+		} else {
+			# No - create new row
+			unless ( $dbh->do("INSERT INTO JOBS ('DATE','TIME','ERRORS',
+									'COMPLETE','DEVICE_TOTAL','DEVICE_COMPLETE') 
+									 VALUES ('$DATE',$START_TIME,0,0,0,0)") ) {
+				print LOG "Error at ",hms_time,": Can't create new row in JOBS table.\n" ;
+				IncERROR 0;
+			};
+			$ROW = $dbh->last_insert_id("","","JOBS","");
+		};
+		return $ROW;
+	};
 };
 
 ############################################################################
@@ -117,6 +169,7 @@ sub OrphansDBDelete {
 				print LOG "Device $_ no longer in device list. Removing from DB at ",hms_time,".\n";
 				unless ( $dbh->do("DELETE FROM DEVICES WHERE NAME = '$_'") ) {
 					print LOG "Error at ",hms_time,": Can't delete $_ from DB\n" ;
+					IncERROR 0;
 				};
 			};
 		};
@@ -136,6 +189,7 @@ sub NewDeviceDB {
 				unless ( $dbh->do("INSERT INTO DEVICES ('NAME','IP','CID_TIME','DATE_ADDED') 
 									VALUES ('$_','$DEVICE_HASH{$_}','0',$time)") ) {
 					print LOG "Error at ",hms_time,": Can't INSERT $_ to DB\n" ;
+					IncERROR 0;
 				};
 			} else {
 				# If IP has changed in file then update DB
@@ -144,6 +198,7 @@ sub NewDeviceDB {
 					print LOG "IP has changed for $_. Old IP is $IP. Updating to new IP of $DEVICE_HASH{$_}\n";
 					unless ( $dbh->do("UPDATE DEVICES SET IP = '$DEVICE_HASH{$_}' WHERE NAME = '$_'") ) {
 						print LOG "Error at ",hms_time,": Can't INSERT $_ to DB\n" ;
+					IncERROR 0;
 					};
 				};
 			};
@@ -178,14 +233,13 @@ sub DetectShell {
 ############################################################################
 sub CreateDeviceDIR {
 	my ($DEVICE) = @_;
-	print LOG "device - $DEVICE, dev - $DEVICE\n";
 	# If you cant open the dir then it does not exist
 	unless (opendir(DIRECTORY,"$ARCHIVE_DIR/$DEVICE")) {
 		print LOG "Device directory $ARCHIVE_DIR/$DEVICE does not exist. Creating folder $DEVICE at ",hms_time,".\n";
 		my $NEW_DIR = "$ARCHIVE_DIR/$DEVICE";
 		unless (mkdir $NEW_DIR,0755) {
 			print LOG "Error: Cannot create folder $DEVICE - $!.\n" ;
-			$ERROR++;
+			IncERROR $DEVICE;
 			next;
 		};
 	} else {
@@ -243,7 +297,7 @@ sub GetUCS {
 	$SSH->scp_get({},'/shared/tmp/backup.ucs',$UCS_FILE);
 	if (length($SSH->error) > 1) {
 		print LOG "Error: UCS file download failed - ",$SSH->error, ".\n" ;
-		$ERROR++;
+		IncERROR $DEVICE;
 		next;
 	};
 };
@@ -263,12 +317,14 @@ sub CleanArchive {
 			@DIRECTORY = reverse sort grep(/backup.ucs/,@DIRECTORY); 
 			foreach (@DIRECTORY[$UCS_ARCHIVE_SIZE..($#DIRECTORY)]) {
 				print LOG "Deleting backup file at ",hms_time,": $DEVICE/$_.\n" ;
-				unlink ("$ARCHIVE_DIR/$DEVICE/$_") or print LOG "Error: Cannot delete $ARCHIVE_DIR/$DEVICE/$_ - $!.\n" and $ERROR++;
+				unlink ("$ARCHIVE_DIR/$DEVICE/$_") 
+					or print LOG "Error: Cannot delete $ARCHIVE_DIR/$DEVICE/$_ - $!.\n" 
+					and IncERROR 0;
 			};
 			closedir DIRECTORY;
 		} else {
 			print LOG "Error: Can not open directory $ARCHIVE_DIR/$DEVICE/ - $!.\n" ;
-			$ERROR++ ;
+			IncERROR $DEVICE;
 			next;
 		};
 	};
@@ -284,12 +340,13 @@ sub CleanLogs {
 		@DIRECTORY = reverse sort grep(/backup.log/,@DIRECTORY);
 		foreach (@DIRECTORY[$LOG_ARCHIVE_SIZE..($#DIRECTORY)]) {
 			print LOG "Deleting log file at ",hms_time,": $_.\n" ;
-			unlink("$DIR/log/$_") or print LOG "Error: Cannot delete $DIR/log/$_ - $!.\n" and $ERROR++;
+			unlink("$DIR/log/$_") or print LOG "Error: Cannot delete $DIR/log/$_ - $!.\n" 
+				and IncERROR 0;
 		};
 		closedir DIRECTORY;
 	} else {
 		print LOG "Error: Can not open log directory: $!.\n" ;
-		$ERROR++;
+		IncERROR 0;
 	};
 };
 
@@ -303,8 +360,20 @@ $START = 1;
 open LOG,"+>","$DIR/log/$DATE-backup.log";
 print LOG "Starting configuration backup on $DATE at ",hms_time,".\n";
 
+# Connect to DB
+print LOG "Opening DB file $DIR/$DB_FILE at ",hms_time,".\n";
+$dbh = DBI->connect(          
+    "dbi:SQLite:dbname=$DIR/$DB_FILE", 
+    "",
+    "",
+    { RaiseError => 1}
+) or die $DBI::errstr;
+
+# Log job in DB
+$JOB_ID = DBJobID;
+
 # Open device list, create device list hash
-print LOG "Opening device list file /$DIR/$DEVICE_LIST at ",hms_time,".\n";
+print LOG "Opening device list file $DIR/$DEVICE_LIST at ",hms_time,".\n";
 open DEVICE_LIST,"<","$DIR/$DEVICE_LIST" or die "Cannot open device list - $!.\n";
 %DEVICE_HASH = ParseDeviceList <DEVICE_LIST>;
 close DEVICE_LIST;
@@ -316,15 +385,6 @@ my $PASSWORD = <PSWD>;
 chomp $PASSWORD;
 close PSWD;
 
-# Connect to DB
-print LOG "Opening DB file $DIR/$DB_FILE at ",hms_time,".\n";
-$dbh = DBI->connect(          
-    "dbi:SQLite:dbname=$DIR/$DB_FILE", 
-    "",
-    "",
-    { RaiseError => 1}
-) or die $DBI::errstr;
-
 # Remove orphaned devices from DB
 OrphansDBDelete;
 
@@ -335,6 +395,14 @@ undef %DEVICE_HASH;
 # Get device names from DB
 my @DEVICES_NAMES = @{$dbh->selectcol_arrayref("SELECT NAME FROM DEVICES")};
 
+# Write number of devices to log DB
+my $NUM_DEVICES = scalar @DEVICES_NAMES;
+print LOG "There are $NUM_DEVICES device(s) to backup.\n";
+unless ( $dbh->do("UPDATE JOBS SET DEVICE_TOTAL = $NUM_DEVICES WHERE ID = $JOB_ID")) {
+	print LOG "Error at ",hms_time,": Can't INSERT device number to DB\n" ;
+	IncERROR 0;
+};
+					
 # Loop though device list
 foreach (@DEVICES_NAMES) {
 	print LOG "\nConnecting to $_ at ",hms_time,".\n";
@@ -355,7 +423,7 @@ foreach (@DEVICES_NAMES) {
 	);
 	if (length($ssh->error) > 1) {
 		print LOG "Error at ",hms_time,": Can't connect to $_ - ",$ssh->error, ".\n" ;
-		$ERROR++ ;
+		IncERROR $_;
 		next;
 	};
 
@@ -368,7 +436,7 @@ foreach (@DEVICES_NAMES) {
 	# Check for new cid time or next if it does not exist
 	if (! defined $new_cid_time) {
 		print LOG "Get CID time failed for $_ at ",hms_time,". Skipping to next device.\n";
-		$ERROR++;
+		IncERROR $_;
 		next;
 	};
 
@@ -390,6 +458,13 @@ foreach (@DEVICES_NAMES) {
 			print LOG "Error at ",hms_time,": Can't INSERT CID time $_ into DB\n" ;
 		};
 	};
+	
+	# Update DB with new complete count
+	$DEVICE_COMPLETE++;
+	unless ( $dbh->do("UPDATE JOBS SET DEVICE_COMPLETE = $DEVICE_COMPLETE WHERE ID = $JOB_ID")) {
+		print LOG "Error at ",hms_time,": Can't INSERT device number to DB\n" ;
+		IncERROR 0;
+	};
 };
 
 #  Add deletion note to log file
@@ -404,6 +479,13 @@ CleanLogs;
 # Check number of errors. Print line if > 0
 print LOG "\nThere is $ERROR error(s).\n" if ($ERROR > 0);
 
+# Mark job as complete in DB
+$dbh->do("UPDATE JOBS SET COMPLETE = 1 WHERE ID = $JOB_ID");
+
+print LOG "Closing database.\n";
+$dbh->disconnect();
+
 # All done
-print LOG "\nBackup job completed.\n";
+print LOG "\nBackup job completed at",hms_time,".\n";
 close LOG;
+
