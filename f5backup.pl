@@ -19,17 +19,17 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
 
-# F5 Config backup 2.1 - Made script more modular with subs
-# 
+# F5 Config backup 2.1  
 # Version 2.1.1 -
 # 	Added Name/IP format to device list w/ comment and empty line exclusion
-# Version 2.1.1.5
-# 	Bug fix for new list format 
-#
-# Features to add -
-#	Separate config item for log archive
+# Version 2.1.1.5 -
+# 	Bug fix for new list format and 
+# Version 2.1.2 -
+#	Separate config item for log & UCS archives
 #	Separate directory for device archive
-#	Fix time localization
+#	Fixed time localization	
+# 	Fixed bug for log directory location
+#
 
 use strict;
 use warnings;
@@ -51,16 +51,25 @@ if (! defined($ARGV[0])) {
 my $config = Config::Tiny->read($ARGV[0]);
 
 # Set VAR of config elements
-my $DIR = $config->{_}->{DIRECTORY};
-my $ARCHIVE_SIZE = $config->{_}->{ARCHIVE_SIZE};
+my $DIR = $config->{_}->{BASE_DIRECTORY};
+my $ARCHIVE_DIR = $config->{_}->{ARCHIVE_DIRECTORY};
+my $UCS_ARCHIVE_SIZE = $config->{_}->{UCS_ARCHIVE_SIZE};
+my $LOG_ARCHIVE_SIZE = $config->{_}->{LOG_ARCHIVE_SIZE};
 my $DEVICE_LIST = $config->{_}->{DEVICE_LIST};
 my $SSH_KEY = $config->{_}->{SSH_KEY};
 my $ERROR = 0;
 
 # Set date
-my $DATE = DateTime->now->ymd("-");
+my $DATE = DateTime->now(time_zone=>'local')->ymd("-");
 
 ########################## DEFINE SUBS #####################################
+
+############################################################################
+# hms_time - Get local time hh:mm:ss at that second 
+############################################################################
+sub hms_time {
+	DateTime->now(time_zone=>'local')->hms;
+};
 
 ############################################################################
 # ParseDeviceList - Parse name & IP from device list and output hash format
@@ -78,9 +87,8 @@ sub ParseDeviceList {
 			push (@DEVICE_ARRAY,$name);
 			push (@DEVICE_ARRAY,$ip);
 		} else {
-			my ($name,$ip) = ($_,$_);
-			push (@DEVICE_ARRAY,$name);
-			push (@DEVICE_ARRAY,$ip);
+			push (@DEVICE_ARRAY,$_);
+			push (@DEVICE_ARRAY,$_);
 		};
 	};
 	return @DEVICE_ARRAY;
@@ -91,9 +99,9 @@ sub ParseDeviceList {
 ############################################################################
 sub CreateDeviceDIR {
 	my ($DEVICE) = (@_);
-	unless (opendir(DIRECTORY,"$DIR/devices/$DEVICE")) {
-		print LOG "Device directory $DIR/devices/$DEVICE does not exist. Creating folder $DEVICE at ",DateTime->now->hms,".\n";
-		my $NEW_DIR = "$DIR/devices/$DEVICE";
+	unless (opendir(DIRECTORY,"$ARCHIVE_DIR/$DEVICE")) {
+		print LOG "Device directory $ARCHIVE_DIR/$DEVICE does not exist. Creating folder $DEVICE at ",hms_time,".\n";
+		my $NEW_DIR = "$ARCHIVE_DIR/$DEVICE";
 		unless (mkdir $NEW_DIR,0755) {
 			print LOG "Error: Cannot create folder $DEVICE - $!.\n" ;
 			$ERROR++;
@@ -127,7 +135,7 @@ sub GetHash {
 ############################################################################
 sub CreateUCS {
 	my ($DEVICE,$SSH) = (@_);
-	print LOG "Hashes do not match for $DEVICE at ",DateTime->now->hms,". Downloading backup file.\n";
+	print LOG "Hashes do not match for $DEVICE at ",hms_time,". Downloading backup file.\n";
 	my ($output,$errput) = $SSH->capture2("tmsh save sys ucs /shared/tmp/backup.ucs");
 	chomp ($output,$errput);
 	print LOG "Making device create UCS - $errput.\n" ;
@@ -140,8 +148,8 @@ sub CreateUCS {
 ############################################################################
 sub GetUCS {
 	my ($DEVICE,$SSH) = (@_);
-	print LOG "Downloading UCS file at ",DateTime->now->hms,".\n";
-	my $UCS_FILE = "$DIR/devices/$DEVICE/$DATE-$DEVICE-backup.ucs";
+	print LOG "Downloading UCS file at ",hms_time,".\n";
+	my $UCS_FILE = "$ARCHIVE_DIR/$DEVICE/$DATE-$DEVICE-backup.ucs";
 	$SSH->scp_get({},'/shared/tmp/backup.ucs',$UCS_FILE);
 	if (length($SSH->error) > 1) {
 		print LOG "Error: UCS file download failed - ",$SSH->error, ".\n" ;
@@ -156,8 +164,8 @@ sub GetUCS {
 ############################################################################
 sub WriteHash {
 	my ($DEVICE,$HASH) = (@_);
-	print LOG "Overwriting old hash file at ",DateTime->now->hms,".\n";
-	if (open(HASH,"+>$DIR/devices/$DEVICE/backup-hash")) {
+	print LOG "Overwriting old hash file at ",hms_time,".\n";
+	if (open(HASH,"+>$ARCHIVE_DIR/$DEVICE/backup-hash")) {
 		print HASH $HASH ;
 		close HASH;
 	} else {
@@ -174,16 +182,16 @@ sub CleanArchive {
 	my @DEVICES = @_;
 	foreach (@DEVICES) {
 		my $DEVICE = $_;
-		if (opendir(DIRECTORY,"$DIR/devices/$DEVICE")) { 
+		if (opendir(DIRECTORY,"$ARCHIVE_DIR/$DEVICE")) { 
 			my @DIRECTORY = readdir(DIRECTORY);
 			@DIRECTORY = reverse sort grep(/backup.ucs/,@DIRECTORY); 
-			foreach (@DIRECTORY[$ARCHIVE_SIZE..($#DIRECTORY)]) {
-				print LOG "Deleting backup file at ",DateTime->now->hms,": $DEVICE/$_.\n" ;
-				unlink ("$DIR/devices/$DEVICE/$_") or print LOG "Error: Cannot delete $DIR/devices/$DEVICE/$_ - $!.\n" and $ERROR++;
+			foreach (@DIRECTORY[$UCS_ARCHIVE_SIZE..($#DIRECTORY)]) {
+				print LOG "Deleting backup file at ",hms_time,": $DEVICE/$_.\n" ;
+				unlink ("$ARCHIVE_DIR/$DEVICE/$_") or print LOG "Error: Cannot delete $ARCHIVE_DIR/$DEVICE/$_ - $!.\n" and $ERROR++;
 			};
 			closedir DIRECTORY;
 		} else {
-			print LOG "Error: Can not open directory $DIR/devices/$DEVICE/ - $!.\n" ;
+			print LOG "Error: Can not open directory $ARCHIVE_DIR/$DEVICE/ - $!.\n" ;
 			$ERROR++ ;
 			next;
 		};
@@ -194,11 +202,11 @@ sub CleanArchive {
 # CleanLogs - Delete old log files
 ############################################################################
 sub CleanLogs {
-	if (opendir(DIRECTORY,"/var/f5backup/log/")) {
+	if (opendir(DIRECTORY,"$DIR/log/")) {
 		my @DIRECTORY = readdir(DIRECTORY);
 		@DIRECTORY = reverse sort grep(/backup.log/,@DIRECTORY);
-		foreach (@DIRECTORY[$ARCHIVE_SIZE..($#DIRECTORY)]) {
-			print LOG "Deleting log file at ",DateTime->now->hms,": $_.\n" ;
+		foreach (@DIRECTORY[$LOG_ARCHIVE_SIZE..($#DIRECTORY)]) {
+			print LOG "Deleting log file at ",hms_time,": $_.\n" ;
 			unlink("$DIR/log/$_") or print LOG "Error: Cannot delete $DIR/log/$_ - $!.\n" and $ERROR++;
 		};
 		closedir DIRECTORY;
@@ -214,7 +222,7 @@ sub CleanLogs {
 
 # Open files/arrays for logging
 open LOG,"+>$DIR/log/$DATE-backup.log";
-print LOG "Starting configuration backup on $DATE at ",DateTime->now->hms,".\n";
+print LOG "Starting configuration backup on $DATE at ",hms_time,".\n";
 
 # Open device list, create device list hash
 open DEVICE_LIST,"<$DIR/$DEVICE_LIST" or die "Cannot open device list - $!.\n";
@@ -223,7 +231,7 @@ my %DEVICE_HASH = ParseDeviceList <DEVICE_LIST>;
 
 # Loop though device list
 foreach (keys %DEVICE_HASH) {
-	print LOG "\nConnecting to $_ at ",DateTime->now->hms,".\n";
+	print LOG "\nConnecting to $_ at ",hms_time,".\n";
 
 	# Create device folder is it does not exist
 	CreateDeviceDIR $_;
@@ -236,7 +244,7 @@ foreach (keys %DEVICE_HASH) {
 		timeout => 5,
 	);
 	if (length($ssh->error) > 1) {
-		print LOG "Error at ",DateTime->now->hms,": Can't connect to $_ - ",$ssh->error, ".\n" ;
+		print LOG "Error at ",hms_time,": Can't connect to $_ - ",$ssh->error, ".\n" ;
 		$ERROR++ ;
 		next;
 	};
@@ -246,21 +254,21 @@ foreach (keys %DEVICE_HASH) {
 
 	# Check for new hash and break if it does not exist
 	if (! defined($NEW_HASH) || length $NEW_HASH != 40) {
-		print LOG "Get HASH failed for $_ at ",DateTime->now->hms,". Skipping to next device.\n";
+		print LOG "Get HASH failed for $_ at ",hms_time,". Skipping to next device.\n";
 		$ERROR++;
 		next;
 	};
 
 	# Check for old hash. if not present the set OLD_HASH to null
 	my $OLD_HASH = "";
-	if (open DEVICE_HASH,"<$DIR/devices/$_/backup-hash") {
+	if (open DEVICE_HASH,"<$ARCHIVE_DIR/$_/backup-hash") {
 		$OLD_HASH = <DEVICE_HASH> ;
 		close DEVICE_HASH;
 	};
 
 	# Compare old hash to new hash
 	if ($OLD_HASH eq $NEW_HASH) {
-		print LOG "Hashes match for $_ at ",DateTime->now->hms,". Configuration unchanged. Skipping download.\n";
+		print LOG "Hashes match for $_ at ",hms_time,". Configuration unchanged. Skipping download.\n";
 	} else {
 		# Make device create UCS file, Download UCS file, Disconnect SSH session, Write new hash to file
 		CreateUCS($_,$ssh);
@@ -273,10 +281,10 @@ foreach (keys %DEVICE_HASH) {
 #  Add deletion note to log file
 print LOG "\nDeleting old files:\n";
 
-# Keep only the number of UCS files specified by ARCHIVE_SIZE and write deletion to log
+# Keep only the number of UCS files specified by UCS_ARCHIVE_SIZE and write deletion to log
 CleanArchive keys %DEVICE_HASH;
 
-# Keep only the number of log files specified by ARCHIVE_SIZE and write deletion to log
+# Keep only the number of log files specified by LOG_ARCHIVE_SIZE and write deletion to log
 CleanLogs;
 
 # Check number of errors. Print line if > 0
