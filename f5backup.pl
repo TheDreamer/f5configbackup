@@ -30,7 +30,11 @@
 #	IP is updated in DB if a device IP changes in the device file
 # Version 2.4.4 -
 #	Added job reporting table to DB
-#
+# Version 2.4.5 -
+#	SQL query enhancements
+#	Shell detection bug fix
+#	Fixed delete orphan matching bug
+#	Fix new CID time validation 
 
 use strict;
 use warnings;
@@ -113,15 +117,15 @@ sub DBJobID {
 			print LOG "Job exists for this date $DATE. Overwriting old DB record at ",hms_time,"\n";
 			unless ($dbh->do("UPDATE JOBS SET TIME = $START_TIME, COMPLETE = 0, 
 									ERRORS = 0, DEVICE_TOTAL = 0,	DEVICE_COMPLETE = 0, 
-									DEVICE_W_ERRORS = ''	WHERE DATE = '$DATE'")) {
+									DEVICE_W_ERRORS = '0'	WHERE DATE = '$DATE'")) {
 				print LOG "Error at ",hms_time,": Can't create new row in JOBS table.\n" ;
 				IncERROR 0;
 			};
 		} else {
 			# No - create new row
 			unless ( $dbh->do("INSERT INTO JOBS ('DATE','TIME','ERRORS',
-									'COMPLETE','DEVICE_TOTAL','DEVICE_COMPLETE') 
-									 VALUES ('$DATE',$START_TIME,0,0,0,0)") ) {
+									'COMPLETE','DEVICE_TOTAL','DEVICE_COMPLETE','DEVICE_W_ERRORS') 
+									 VALUES ('$DATE',$START_TIME,0,0,0,0,0)") ) {
 				print LOG "Error at ",hms_time,": Can't create new row in JOBS table.\n" ;
 				IncERROR 0;
 			};
@@ -164,11 +168,11 @@ sub OrphansDBDelete {
 		my @devices_temp1 = (keys %DEVICE_HASH);
 		# Loop through DB devices list, match against file device list
 		# Remove any devices from DB that are not in file
-		foreach (@names_temp1) {
-			if ( "@devices_temp1" !~ "$_") {
-				print LOG "Device $_ no longer in device list. Removing from DB at ",hms_time,".\n";
-				unless ( $dbh->do("DELETE FROM DEVICES WHERE NAME = '$_'") ) {
-					print LOG "Error at ",hms_time,": Can't delete $_ from DB\n" ;
+		foreach my $name1 (@names_temp1) {
+		unless ( grep {$_ eq "$name1"} @devices_temp1) {
+				print LOG "Device $name1 no longer in device list. Removing from DB at ",hms_time,".\n";
+				unless ( $dbh->do("DELETE FROM DEVICES WHERE NAME = '$name1'") ) {
+					print LOG "Error at ",hms_time,": Can't delete $name1 from DB\n" ;
 					IncERROR 0;
 				};
 			};
@@ -181,28 +185,31 @@ sub OrphansDBDelete {
 ############################################################################
 sub NewDeviceDB {
 	if ($START) {
+		my $sth = $dbh->prepare("SELECT count('NAME') FROM DEVICES WHERE NAME = ?");
 		foreach (keys %DEVICE_HASH) {
-			if (! join '',$dbh->selectrow_array("SELECT count('NAME') FROM DEVICES WHERE NAME = '$_'")) {
+			$sth->execute($_);
+			if (! $sth->fetchrow_array() ) {
 				# If device is not in DB then add it
 				my $time = time;
 				print LOG "Device $_ is not in database. Adding to DB at ",hms_time,".\n";
 				unless ( $dbh->do("INSERT INTO DEVICES ('NAME','IP','CID_TIME','DATE_ADDED') 
-									VALUES ('$_','$DEVICE_HASH{$_}','0',$time)") ) {
+									VALUES (?,?,'0',$time)", undef,$_,$DEVICE_HASH{$_}) ) {
 					print LOG "Error at ",hms_time,": Can't INSERT $_ to DB\n" ;
 					IncERROR 0;
 				};
 			} else {
 				# If IP has changed in file then update DB
-				my $IP = join '',$dbh->selectrow_array("SELECT IP FROM DEVICES WHERE NAME = '$_'");
+				my $IP = join '',$dbh->selectrow_array("SELECT IP FROM DEVICES WHERE NAME = ?", undef,$_);
 				if ($IP ne $DEVICE_HASH{$_} ) {
 					print LOG "IP has changed for $_. Old IP is $IP. Updating to new IP of $DEVICE_HASH{$_}\n";
-					unless ( $dbh->do("UPDATE DEVICES SET IP = '$DEVICE_HASH{$_}' WHERE NAME = '$_'") ) {
+					unless ( $dbh->do("UPDATE DEVICES SET IP = ? WHERE NAME = ?",undef,$DEVICE_HASH{$_},$_) ) {
 						print LOG "Error at ",hms_time,": Can't INSERT $_ to DB\n" ;
-					IncERROR 0;
+						IncERROR 0;
 					};
 				};
 			};
 		};
+		$sth->finish();
 	};
 };
 ############################################################################
@@ -211,20 +218,27 @@ sub NewDeviceDB {
 ############################################################################
 sub DetectShell {
 	my ($DEVICE,$SSH) = (@_);
-	my ($output,$discard) = $SSH->capture2("echo hello");
+	my ($output,$errput) = $SSH->capture2("echo hello");
+	my ($SHELL,$errput2);
 	chomp $output;
 	# if output is hello the shell is bash
 	if ($output eq "hello")  {
 		print LOG "Shell for $DEVICE is bash.\n";
-		return "bash";
+		$SHELL = "bash";
 	};
-	($output,$discard) = $SSH->capture2("show sys version");
+	($output,$errput2) = $SSH->capture2("show sys version");
 	chomp $output;
 	# If output contains Sys::Version then shell is TMSH
 	if ($output =~ "Sys::Version")  {
 		print LOG "Shell for $DEVICE is tmsh.\n";
-		return "tmsh";
+		$SHELL = "tmsh";
 	};
+	unless ($SHELL) {
+		print LOG "Error at ",hms_time,": Can't detect shell for $DEVICE - $output - $errput - $errput2.\n" ;
+		IncERROR $DEVICE;	
+		next;
+	};
+	return $SHELL
 };
 
 ############################################################################
@@ -258,7 +272,7 @@ sub ParseDBkey {
 	return $text;
 };
 sub GetCIDtime {
-	my ($DEVICE,$SSH,$SHELL) = (@_);
+	my ($DEVICE,$SSH,$SHELL) = @_;
 	my $DB_KEY;
 	if ($SHELL eq "bash")  {
 		$DB_KEY = ParseDBkey $SSH->capture("tmsh list sys db configsync.localconfigtime");
@@ -434,7 +448,7 @@ foreach (@DEVICES_NAMES) {
 	my $new_cid_time = GetCIDtime $_,$ssh,$shell;
 
 	# Check for new cid time or next if it does not exist
-	if (! defined $new_cid_time) {
+	unless (length $new_cid_time) {
 		print LOG "Get CID time failed for $_ at ",hms_time,". Skipping to next device.\n";
 		IncERROR $_;
 		next;
@@ -482,7 +496,7 @@ print LOG "\nThere is $ERROR error(s).\n" if ($ERROR > 0);
 # Mark job as complete in DB
 $dbh->do("UPDATE JOBS SET COMPLETE = 1 WHERE ID = $JOB_ID");
 
-print LOG "Closing database.\n";
+print LOG "\nClosing database.\n";
 $dbh->disconnect();
 
 # All done
