@@ -34,7 +34,7 @@
 #	SQL query enhancements
 #	Shell detection bug fix
 #	Fixed delete orphan matching bug
-#	Fix new CID time validation 
+#	Fixed new CID time validation 
 
 use strict;
 use warnings;
