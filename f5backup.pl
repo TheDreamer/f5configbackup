@@ -500,6 +500,6 @@ print LOG "\nClosing database.\n";
 $dbh->disconnect();
 
 # All done
-print LOG "\nBackup job completed at",hms_time,".\n";
+print LOG "\nBackup job completed at ",hms_time,".\n";
 close LOG;
 
