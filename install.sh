@@ -233,6 +233,11 @@ echo -e "\nCopying f5backup.pl file to $BASE_DIR/"
 cp ./f5backup.pl $BASE_DIR/f5backup.pl
 chmod 0755 $BASE_DIR/f5backup.pl
 
+echo -e "\nCopying testssh.pl file to $BASE_DIR/"
+cp ./testssh.pl $BASE_DIR/testssh.pl
+chmod 0755 $BASE_DIR/testssh.pl
+
+
 echo -e "\nCreating log directory $BASE_DIR/log"
 mkdir $BASE_DIR/log
 

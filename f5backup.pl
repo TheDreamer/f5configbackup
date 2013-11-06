@@ -441,7 +441,7 @@ foreach (@DEVICES_NAMES) {
 
 	# Detect device shell
 	my $shell = DetectShell $_,$ssh;
-	print LOG "Shell for $DEVICE is $shell.\n";
+	print LOG "Shell for $_ is $shell.\n";
 	
 	# get cid time from device and write to VAR
 	my $new_cid_time = GetCIDtime $_,$ssh,$shell;

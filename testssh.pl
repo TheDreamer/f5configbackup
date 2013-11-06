@@ -4,6 +4,16 @@ use warnings;
 use Net::OpenSSH;
 use Config::Tiny;
 
+# Input variable check
+if (! defined($ARGV[0])) {
+	print "No config file defined!\n";
+	print "Syntax: testssh.pl [config_file]\n\n";
+	exit;
+} elsif ($ARGV[0] eq "-h" || $ARGV[0] eq "--help") {
+	print "Syntax: testssh.pl [config_file]\n\n";
+	exit;
+};
+
 # Get contents of config file
 my $config = Config::Tiny->read($ARGV[0]);
 
@@ -105,7 +115,7 @@ foreach (keys %DEVICE_HASH) {
 			my $thumb = `key="$key"; ssh-keygen -lf /dev/stdin  <<<\$key | cut -d ' ' -f2; unset key`;
 			chomp ($key,$thumb);
 			print "  \n  The authenticity of host '$_ ($IP)' can't be established.\n";
-			print "  RSA key fingerprint is $thumb \n";
+			print "  RSA key fingerprint is $thumb. \n";
 			
 			# Ask user if they would like to add key. Ask until they give valid answer of yes/no
 			ASK:
@@ -122,7 +132,7 @@ foreach (keys %DEVICE_HASH) {
 						." Please manually remove the offending key and re-run the script.\n";
 					next;
 				} else {
-					# Append to known hosts file and reattempt perl SSH connection (instead of bash)
+					# Append to known hosts file and re-attempt SSH connection 
 					print "  Adding $_ key to ~/.ssh/known_hosts file.\n";
 					`echo "$key" >> ~/.ssh/known_hosts`;
 					goto CONNECT; 
@@ -136,6 +146,7 @@ foreach (keys %DEVICE_HASH) {
 				goto ASK;
 			};
 		};
+		# If error is anything else then skip to next device.
 		next;
 	};
 
