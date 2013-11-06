@@ -16,6 +16,7 @@ DateTime
 Net::OpenSSH
 Config::Tiny
 DBI
+IO::Pty
 "
 
 # Loop through module list and break if module not present
@@ -69,7 +70,7 @@ if [ -d "$BASE_DIR" ]; then
 	done
 else
 	echo "$BASE_DIR does not exist. Creating directory."; 
-	mkdir $BASE_DIR
+	mkdir -p $BASE_DIR
 	if [ $? = 1 ]; then
 		echo -e "\nCould not create directory. Please solve issue and try again."
 		exit
@@ -133,7 +134,8 @@ fi
 
 # ---------------- Ask user about config file -----------------------------------------
 # Username 
-echo -e "\nWhat username would you like to use for device login ?"
+echo -e "\nWhat username would you like to use for device login ? "
+echo "The user needs to be an administrator on the F5 so that it can create UCS files."
 echo "Press enter for default. [admin]"
 read USERNAME
 
@@ -144,7 +146,7 @@ fi
 
 # Password file
 echo -e "\nWhat password file would you like to use for device login ?"
-echo "Recommend file be in users home directory with proper file ownership and attributes of 0600 (readable by user only)"
+echo "Recommend file be in users home directory with proper file ownership and attributes of 0400 (readable by user only)"
 read -e -r PASS_FILE
 
 # Archive size
@@ -205,19 +207,20 @@ BASE_DIRECTORY=$BASE_DIR
 ARCHIVE_DIRECTORY=$ARCHIVE_DIRECTORY
 
 # List of devices, one per line
-# List needs to be in DIRECTORY location
+# List needs to be in BASE_DIRECTORY location
 DEVICE_LIST=$DEVICE_LIST
 
 # Username to log into devices
 USERNAME=$USERNAME
 
-# Location of password file, file should only contain password
+# Location of password file, file should only contain password.
+# The user needs to be an administrator on the F5 so that it can create UCS files.
 # Recommend file be in users home directory with proper file ownership 
-# 	and attributes of 0600 (readable by user only)
+# 	and attributes of 0400 (readable by user only)
 PASS_FILE=$PASS_FILE
 
 # Location of DB file
-# DB file needs to be in DIRECTORY location
+# DB file needs to be in BASE_DIRECTORY location
 DB_FILE=main.db
 
 # Number of UCS files to retain per devices

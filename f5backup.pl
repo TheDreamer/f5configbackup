@@ -117,7 +117,7 @@ sub DBJobID {
 			print LOG "Job exists for this date $DATE. Overwriting old DB record at ",hms_time,"\n";
 			unless ($dbh->do("UPDATE JOBS SET TIME = $START_TIME, COMPLETE = 0, 
 									ERRORS = 0, DEVICE_TOTAL = 0,	DEVICE_COMPLETE = 0, 
-									DEVICE_W_ERRORS = '0'	WHERE DATE = '$DATE'")) {
+									DEVICE_W_ERRORS = '0' WHERE DATE = '$DATE'")) {
 				print LOG "Error at ",hms_time,": Can't create new row in JOBS table.\n" ;
 				IncERROR 0;
 			};
@@ -171,7 +171,7 @@ sub OrphansDBDelete {
 		foreach my $name1 (@names_temp1) {
 		unless ( grep {$_ eq "$name1"} @devices_temp1) {
 				print LOG "Device $name1 no longer in device list. Removing from DB at ",hms_time,".\n";
-				unless ( $dbh->do("DELETE FROM DEVICES WHERE NAME = '$name1'") ) {
+				unless ( $dbh->do("DELETE FROM DEVICES WHERE NAME = ?",undef,$name1) ) {
 					print LOG "Error at ",hms_time,": Can't delete $name1 from DB\n" ;
 					IncERROR 0;
 				};
@@ -223,14 +223,12 @@ sub DetectShell {
 	chomp $output;
 	# if output is hello the shell is bash
 	if ($output eq "hello")  {
-		print LOG "Shell for $DEVICE is bash.\n";
 		$SHELL = "bash";
 	};
 	($output,$errput2) = $SSH->capture2("show sys version");
 	chomp $output;
 	# If output contains Sys::Version then shell is TMSH
 	if ($output =~ "Sys::Version")  {
-		print LOG "Shell for $DEVICE is tmsh.\n";
 		$SHELL = "tmsh";
 	};
 	unless ($SHELL) {
@@ -421,7 +419,7 @@ unless ( $dbh->do("UPDATE JOBS SET DEVICE_TOTAL = $NUM_DEVICES WHERE ID = $JOB_I
 foreach (@DEVICES_NAMES) {
 	print LOG "\nConnecting to $_ at ",hms_time,".\n";
 
-	# Create device folder is it does not exist
+	# Create device folder if it does not exist
 	CreateDeviceDIR $_;
 	
 	# Get IP from DB or set to hostname if NULL
@@ -443,6 +441,7 @@ foreach (@DEVICES_NAMES) {
 
 	# Detect device shell
 	my $shell = DetectShell $_,$ssh;
+	print LOG "Shell for $DEVICE is $shell.\n";
 	
 	# get cid time from device and write to VAR
 	my $new_cid_time = GetCIDtime $_,$ssh,$shell;
