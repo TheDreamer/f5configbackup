@@ -16,6 +16,7 @@ DateTime
 Net::OpenSSH
 Config::Tiny
 DBI
+DBD::SQLite
 IO::Pty
 "
 
@@ -40,6 +41,13 @@ if [ $NOT_INSTALLED != 0 ] ; then
 	exit
 fi
 echo "Perl modules are good!"
+
+# ------------ SQLite3 installation check -----------------------------------
+sql=`sqlite3 -version 2> /dev/null`
+if [ -z $sql ]; then
+	echo -e "\nSqllite not installed. Please install and try again.\n"
+	exit
+fi
 
 # ------------ Ask user for base directory ------------------------------------
 echo -e "\nWhat directory would you like to install this program in ?"

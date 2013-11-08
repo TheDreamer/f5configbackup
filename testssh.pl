@@ -112,8 +112,9 @@ foreach (keys %DEVICE_HASH) {
 		if (grep /known_hosts/,$error) {
 			# Get key from device and make thumbprint. Display to user.
 			my $key = `ssh-keyscan $IP 2> /dev/null` ;
+			chomp $key;
 			my $thumb = `key="$key"; ssh-keygen -lf /dev/stdin  <<<\$key | cut -d ' ' -f2; unset key`;
-			chomp ($key,$thumb);
+			chomp $thumb;
 			print "  \n  The authenticity of host '$_ ($IP)' can't be established.\n";
 			print "  RSA key fingerprint is $thumb. \n";
 			
