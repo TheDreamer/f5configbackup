@@ -20,6 +20,7 @@ F5 Config backup release notes
 
 ##F5 Config backup 2.5 ##################################
 	Added WebUI
+	Added JOB table cleaner 
 	
 
 ##F5 Config backup 2.4 ##################################
