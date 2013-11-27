@@ -1,16 +1,11 @@
-<html>
-<body>
 <?php
 session_start();
 if(isset( $_SESSION['active'])) {
-        unset($_SESSION['clientip']);
-        unset($_SESSION['active']);
+	unset($_SESSION['clientip']);
+	unset($_SESSION['active']);
+	unset($_SESSION['user']);
+	unset($_SESSION['time']);
+	session_destroy();
+}
+header("Location: /login.php");
 ?>
-<h1>You are now logged out</h1>
-<a href="/">Click here to login</a>
-<?} else { ?>
-<h1>You are already logged out</h1>
-<a href="/">Click here to login</a>
-<?}?>
-</body>
-</html>

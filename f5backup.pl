@@ -306,6 +306,42 @@ sub CleanArchive {
 };
 
 ############################################################################
+# UCS_DB - Insert UCS file listing into DB
+############################################################################
+sub UCS_DB {
+	if ($START) {
+		# Clear archive DB 
+		$dbh->do("DELETE FROM ARCHIVE");
+		
+		# Get device IDs from DB
+		my $sth = $dbh->prepare("SELECT ID,NAME FROM DEVICES");  
+		$sth->execute();
+		
+		# Prepare statement for file insert into DB
+		my $psth = $dbh->prepare("INSERT INTO ARCHIVE ('DEVICE','DIR','FILE') VALUES (?,?,?);");
+		
+		# Loop through rows
+		while(my $row = $sth->fetchrow_hashref()) {
+			my $DEVICE = $row->{NAME};
+			my $ID = $row->{ID};
+			if (opendir(DIRECTORY,"$ARCHIVE_DIR/$DEVICE")) { 
+				my @DIRECTORY = readdir(DIRECTORY);
+				@DIRECTORY = grep(/backup.ucs/,@DIRECTORY); 
+				foreach (@DIRECTORY) {
+					$psth->execute($ID,"$ARCHIVE_DIR/$DEVICE",$_);
+				};
+				closedir DIRECTORY;
+			} else {
+				print LOG "Error: Can not open directory $ARCHIVE_DIR/$DEVICE/ - $!.\n" ;
+				IncERROR 0;
+				next;
+			};
+		};
+	};
+};
+
+
+############################################################################
 # CleanLogs - Delete old log files
 ############################################################################
 sub CleanLogs {
@@ -324,6 +360,20 @@ sub CleanLogs {
 		IncERROR 0;
 	};
 };
+############################################################################
+# CleanJobTable - Delete old job entries from DB
+############################################################################
+sub CleanJobTable {
+	if ($START) {
+		my @JOBS_ID = @{$dbh->selectcol_arrayref("SELECT ID FROM JOBS ORDER BY ID")};
+		my $sth = $dbh->prepare("DELETE FROM JOBS WHERE ID = ?");
+		@JOBS_ID = reverse @JOBS_ID;
+		foreach (@JOBS_ID[$LOG_ARCHIVE_SIZE..(scalar @JOBS_ID)]) {
+			$sth->execute($_) or print LOG "Error: Cannot delete job ID $_ from DB\n"
+				and IncERROR 0;
+		}
+	}
+}
 
 ############################################################################################
 # *************************************** MAIN PROGRAM *************************************
@@ -449,8 +499,14 @@ print LOG "\nDeleting old files:\n";
 # Keep only the number of UCS files specified by UCS_ARCHIVE_SIZE and write deletion to log
 CleanArchive @DEVICES_NAMES;
 
+# Insert files names into DB
+UCS_DB;
+
 # Keep only the number of log files specified by LOG_ARCHIVE_SIZE and write deletion to log
 CleanLogs;
+
+# Clean jobs logs from DB
+CleanJobTable;
 
 # Check number of errors. Print line if > 0
 print LOG "\nThere is $ERROR error(s).\n" if ($ERROR > 0);

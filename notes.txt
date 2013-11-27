@@ -1,0 +1,13 @@
+******* Needs ******************************
+
+Admin password updates
+
+******* Thoughts ***************************
+
+User enabled/disabled selection
+User RBAC
+
+
+admin password reset
+'$2a$12$3rYrrUoe62DkIgvZUE6UJOFuIkVPirH8k8oL8Cj74QBDrb7Gy8fFi'
+echo "UPDATE ADMIN SET HASH = '\$2a\$12\$3rYrrUoe62DkIgvZUE6UJOFuIkVPirH8k8oL8Cj74QBDrb7Gy8fFi'  WHERE ID = 1;" | sqlite3 ../db/main.db
