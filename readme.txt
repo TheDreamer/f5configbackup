@@ -18,6 +18,8 @@ F5 Config backup release notes
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
 
+This product includes PHP software, freely available from <http://www.php.net/software/>
+
 ##F5 Config backup 2.5 ##################################
 	Added WebUI
 	Added JOB table cleaner 

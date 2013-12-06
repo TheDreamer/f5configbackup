@@ -1,0 +1,19 @@
+Installed GCC
+Installed perl-YAML
+
+Installed App::cpanminus via cpan
+Installed via cpanm - DBI
+Installed via cpanm - DateTime
+Installed via cpanm - Net::OpenSSH 
+Installed via cpanm - Config::Tiny
+Installed via cpanm - IO::Pty 
+
+Installed httpd via yum
+Installed php via yum
+Installed mod_ssl
+Changed php.in file
+Installed php-sqlite3 via yum
+to all dirs - chcon -Rv --type=httpd_sys_content_t 
+					chown -R root:apache
+					chmod -R 0770
+

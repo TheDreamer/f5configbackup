@@ -5,10 +5,8 @@ include("include/functions.php");
 
 // login post
 if ($_SERVER['REQUEST_METHOD'] == "POST") {
-	$login = 1;
-	// If any bad chars in post contents dont allow DB lookup
 	if ( bad_chars($_POST["username"]) || bad_chars($_POST["password"]) ) {
-		$injection = 1;
+	// If any bad chars in post contents dont allow DB lookup
 		$error = "Input will not accept those special characters!";
 	} else {
 		// admin login
@@ -36,18 +34,28 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				$db_hash = "null";
 			};
 		};
-	// Hashed input password
-	$post_hash = crypt($_POST["password"], $db_hash);
+		// Hashed input password
+		$post_hash = crypt($_POST["password"], $db_hash);
+		$login = 1;
 	};
 };
 
 // If user POST and not injecting and new hash eq hash from db	 
-if (isset($login) && ! isset($injection) && $db_hash == $post_hash ) {
+if (isset($login) && $db_hash == $post_hash ) {
+
+	// Get timeout value from DB
+	$sth = $dbh->prepare("SELECT VALUE FROM SETTINGS_INT WHERE NAME = 'timeout'");
+	$sth->execute();
+	$timeout = $sth->fetchColumn();
+
+	// Set session vars
+	session_regenerate_id(true);
 	$_SESSION['clientip'] = $_SERVER['REMOTE_ADDR'];
 	$_SESSION['active'] = 1;
 	$_SESSION['user'] = $_POST["username"];
 	$_SESSION['time'] = time();
-	$location = "http://".$_SERVER['HTTP_HOST'].urldecode($_GET["page"]);
+	$_SESSION['timeout'] = $timeout;
+	$location = "https://".$_SERVER['HTTP_HOST'].urldecode($_GET["page"]);
 	header("Location: $location");
 } else {
 // Otherwise give them the login page
@@ -62,8 +70,8 @@ if (isset($login) && ! isset($injection) && $db_hash == $post_hash ) {
 	$sth->execute();
 	$motd = $sth->fetchColumn();
 	
-	// Display error if POST and not injecting 
-	if ( isset($login) && ! isset($injection) ) {
+	// Display error if POST and error has not been previously  
+	if ( isset($login) && ! isset($error) ) {
 		$error = "Bad username or password.";
 	};
 
@@ -76,7 +84,7 @@ if (isset($login) && ! isset($injection) && $db_hash == $post_hash ) {
 <div id="login">
 	<div id="header">
 		<div id="title">F5 Config Backup</div>
-		<div id="title2">F5 Backups. Your way. <sup>( ! TM)</sup></div>
+		<div id="title2">Config Backups. Your way. <sup>( ! TM)</sup></div>
 	</div>
 	<div id="body">
 		<div id="form">

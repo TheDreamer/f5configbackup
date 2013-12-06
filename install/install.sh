@@ -121,19 +121,7 @@ if [ -z $DEVICE_LIST ]; then
 	DEVICE_LIST="list.txt"
 fi 
 echo -e "\nCreating device list $BASE_DIR/$DEVICE_LIST."
-echo -e "# Put your list of devices in this file
-# One line per device
-#
-# Format -
-# For devices that can be reached through DNS use name only -
-# Example - BIPIP_LTM1
-#
-# For devices that need an IP use NAME=IP -
-# Example - BIGIP1=192.168.1.245
-#
-F5_BIGIP1=192.168.1.245
-F5_BIGIP2=192.168.1.246
-BIGIP3" > $BASE_DIR/$DEVICE_LIST
+cp list.txt $BASE_DIR/$DEVICE_LIST
 
 if [ $? = 1 ]; then
 	echo -e "\nCould not create device list. Please solve issue and try again."
@@ -181,61 +169,15 @@ fi
 # Create DB
 echo -e "\nCreating DB file $BASE_DIR/main.db"
 
-echo > $BASE_DIR/main.db
-echo -e "PRAGMA foreign_keys=OFF;
-BEGIN TRANSACTION;
-CREATE TABLE DEVICES (
-ID INTEGER PRIMARY KEY AUTOINCREMENT,
-NAME TEXT NOT NULL,
-IP CHAR(15),
-CID_TIME INT,
-DATE_ADDED INT,
-LAST_DATE INT
-);
-CREATE TABLE JOBS (
-ID INTEGER PRIMARY KEY AUTOINCREMENT,
-DATE DATE NOT NULL,
-TIME INT NOT NULL,
-ERRORS INT,
-COMPLETE BOOLEAN,
-DEVICE_TOTAL INT,
-DEVICE_COMPLETE INT,
-DEVICE_W_ERRORS TEXT
-);
-COMMIT;" | sqlite3 $BASE_DIR/main.db
+mkdir $BASE_DIR/db
+echo > $BASE_DIR/db/main.db
+cat db.txt | sqlite3 $BASE_DIR/db/main.db
 
 
 # Create config file
 echo -e "\nCreating config file $BASE_DIR/f5backup.conf with the options you selected."
 
-echo -e "# base directory for F5 backup
-BASE_DIRECTORY=$BASE_DIR
-
-# Archive directory for UCS files
-ARCHIVE_DIRECTORY=$ARCHIVE_DIRECTORY
-
-# List of devices, one per line
-# List needs to be in BASE_DIRECTORY location
-DEVICE_LIST=$DEVICE_LIST
-
-# Username to log into devices
-USERNAME=$USERNAME
-
-# Location of password file, file should only contain password.
-# The user needs to be an administrator on the F5 so that it can create UCS files.
-# Recommend file be in users home directory with proper file ownership 
-# 	and attributes of 0400 (readable by user only)
-PASS_FILE=$PASS_FILE
-
-# Location of DB file
-# DB file needs to be in BASE_DIRECTORY location
-DB_FILE=main.db
-
-# Number of UCS files to retain per devices
-UCS_ARCHIVE_SIZE=$UCS_ARCHIVE_SIZE
-
-# Number of log files to maintain
-LOG_ARCHIVE_SIZE=$LOG_ARCHIVE_SIZE" > $BASE_DIR/f5backup.conf
+eval echo -e "\"$(<config.txt)\"" > $BASE_DIR/f5backup.conf
 
 echo -e "\nCopying f5backup.pl file to $BASE_DIR/"
 cp ./f5backup.pl $BASE_DIR/f5backup.pl
@@ -250,4 +192,3 @@ echo -e "\nCreating log directory $BASE_DIR/log"
 mkdir $BASE_DIR/log
 
 echo -e "\nDone installing program. Check $BASE_DIR for file contents."	
-

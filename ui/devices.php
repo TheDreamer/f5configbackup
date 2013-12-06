@@ -85,7 +85,7 @@ EOD;
 
 	// loop through array to make device table
 	$count = 1;
-	foreach ($dbh->query("SELECT NAME,ID,IP FROM DEVICES") as $row) {
+	foreach ($dbh->query("SELECT NAME,ID,IP FROM DEVICES ORDER BY NAME") as $row) {
 		$name = $row['NAME'];
 		$id = $row['ID'];
 		$ip = $row['IP'];

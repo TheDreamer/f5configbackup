@@ -26,8 +26,7 @@ if ( isset($_GET["id"]) && is_numeric($_GET["id"]) ) {
 			header("HTTP/1.0 404 Not Found");
 			echo <<<EOD
 	<h1>File not found.</h1>
-	<p>Can't find file $file.</p>
-				
+	<p>Can't find file $file.</p>\n		
 EOD;
 		};
 } else {

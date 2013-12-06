@@ -1,0 +1,13 @@
+# Put your list of devices in this file
+# One line per device
+#
+# Format -
+# For devices that can be reached through DNS use name only -
+# Example - BIPIP_LTM1
+#
+# For devices that need an IP use NAME=IP -
+# Example - BIGIP1=192.168.1.245
+#
+F5_BIGIP1=192.168.1.245
+F5_BIGIP2=192.168.1.246
+BIGIP3

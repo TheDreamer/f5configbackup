@@ -4,7 +4,7 @@
 
 // check for bad characters 
 function bad_chars ($input) {
-	if ( preg_match('/([\'\"%=;\s]|--)/', $input) ) {
+	if ( preg_match('/([\'\"%=;<>\s]|--)/', $input) ) {
 		return 1;
 	} else {
 		return 0;
@@ -23,7 +23,7 @@ function password ($password,$password2) {
 	// Passwords can not contain special characters 
 	if ( bad_chars($password) ) {
 		global $PASS_ERR;
-		$PASS_ERR = "Passwords can't contain spaces or the following special characters: ' \" = % ; --";
+		$PASS_ERR = "Passwords can't contain spaces or the following special characters: ' \" = % ; < > --";
 		return;
 	};
 	

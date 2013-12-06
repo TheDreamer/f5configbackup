@@ -1,0 +1,28 @@
+# base directory for F5 backup
+BASE_DIRECTORY=$BASE_DIR
+
+# Archive directory for UCS files
+ARCHIVE_DIRECTORY=$ARCHIVE_DIRECTORY
+
+# List of devices, one per line
+# List needs to be in BASE_DIRECTORY location
+DEVICE_LIST=$DEVICE_LIST
+
+# Username to log into devices
+USERNAME=$USERNAME
+
+# Location of password file, file should only contain password.
+# The user needs to be an administrator on the F5 so that it can create UCS files.
+# Recommend file be in users home directory with proper file ownership 
+# 	and attributes of 0400 (readable by user only)
+PASS_FILE=$PASS_FILE
+
+# Location of DB file
+# DB file needs to be in BASE_DIRECTORY location
+DB_FILE=db/main.db
+
+# Number of UCS files to retain per devices
+UCS_ARCHIVE_SIZE=$UCS_ARCHIVE_SIZE
+
+# Number of log files to maintain
+LOG_ARCHIVE_SIZE=$LOG_ARCHIVE_SIZE

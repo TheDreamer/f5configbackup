@@ -50,18 +50,32 @@ if ( $main_page ) {
 		$errors = $row['ERRORS'];
 		$complete = "No";
 		if ($row['COMPLETE'] = 1) {$complete = "Yes";};
-		$device_w_errors = $row['DEVICE_W_ERRORS'];
+		$device_w_errors = explode(' ', $row['DEVICE_W_ERRORS']);
+		$log_file = file_get_contents("../log/$date-backup.log");
 
-		$contents = "<table class=\"pagelet_table\">\n";
-		$contents .= "\t<tr class=\"pglt_tb_hdr\"><td>Time</td><td># of Errors</td><td>Job Complete</td>";
-		$contents .= "<td>Devices /w Errors</td></tr>";
-		$contents .= "\t<tr class=\"odd\"><td>$time</td><td>$errors</td><td>$complete</td>";
-		$contents .= "<td>$device_w_errors</td></tr>\n";
-		$contents .= "</table>\n";
-		$contents .= "<h3>Backup Job Log -</h3>\n";
-		$contents .= "<pre class=\"log\">\n";
-		$contents .= file_get_contents("../log/$date-backup.log");
-		$contents .= "</pre>";
+		// Get device ID for hyperlink to device w/ errors
+		$error_list = '';
+		foreach ($device_w_errors as $i) {
+			$sth = $dbh->prepare("SELECT ID FROM DEVICES WHERE NAME = '$i'");
+			$sth->execute();
+			$device_id = $sth->fetchColumn();
+			$error_list .= "<a href=\"/devices.php?id=\\$device_id\">$i</a> ";
+		};
+		
+		$contents = <<<EOD
+	<table class="pagelet_table">
+		<tr class="pglt_tb_hdr">
+			<td>Time</td><td># of Errors</td><td>Job Complete</td><td>Devices /w Errors</td>
+		</tr>
+		<tr class="odd">
+			<td>$time</td><td>$errors</td><td>$complete</td><td>$error_list</td>
+		</tr>
+	</table>
+	<h3>Backup Job Log -</h3>
+	<pre class"log">
+$log_file
+	</pre>\n
+EOD;
 	} else {
 	# Error message if id is not number
 		$contents = "<p><strong>Error:</strong> \"$ID\" is not a valid input</p>\n";
