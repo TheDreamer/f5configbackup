@@ -1,5 +1,7 @@
 Installed GCC
 Installed perl-YAML
+cpan Module::Build
+cpan Module::Metadata
 
 Installed App::cpanminus via cpan
 Installed via cpanm - DBI
@@ -11,9 +13,8 @@ Installed via cpanm - IO::Pty
 Installed httpd via yum
 Installed php via yum
 Installed mod_ssl
-Changed php.in file
+Changed php.ini file
 Installed php-sqlite3 via yum
 to all dirs - chcon -Rv --type=httpd_sys_content_t 
 					chown -R root:apache
 					chmod -R 0770
-

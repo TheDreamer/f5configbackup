@@ -4,7 +4,6 @@ body {
 	padding: 0;
 	font: 10px arial,helvetica,sans-serif;
 }
-
 /* Hyperlink properties */
 a:visited {
 	color:inherit;
@@ -18,12 +17,16 @@ a:hover {
 }
 /*----- Login page properties -------*/
 div#login {
-	margin: auto;
+	position: absolute;
+	display: block;
+	margin: 0 auto;
 	margin-top: 10%;
+	margin-left: -325px;
+	left: 50%;
 	width: 650px;
 	height: 400px;
 	border: 1px solid #999999;
-	background-color:#DEDDD9
+	background-color:#DEDDD9;
 }
 div#header {
 	height: 70px;

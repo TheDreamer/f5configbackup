@@ -1,6 +1,7 @@
 ******* Needs ******************************
 
 Admin password updates
+Remove db file option config file
 
 ******* Thoughts ***************************
 

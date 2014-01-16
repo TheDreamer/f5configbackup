@@ -1,0 +1,16 @@
+session.cookie_httponly = 1
+
+session.gc_divisor = 100
+
+session.gc_maxlifetime = 3600
+
+session.hash_function = 7
+
+short_open_tag = On
+
+expose_php = Off
+
+allow_url_fopen = Off
+
+session.name = BACKUPID
+

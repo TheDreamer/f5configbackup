@@ -167,7 +167,7 @@ fi
 
 
 # Create DB
-echo -e "\nCreating DB file $BASE_DIR/main.db"
+echo -e "\nCreating DB file $BASE_DIR/db/main.db"
 
 mkdir $BASE_DIR/db
 echo > $BASE_DIR/db/main.db

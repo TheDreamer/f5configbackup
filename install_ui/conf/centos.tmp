@@ -27,29 +27,39 @@ SSLCryptoDevice builtin
 	Order deny,allow
 	Deny from all
 </Directory>
-<Directory "/var/f5backup/devices/">
+<Directory ARCHIVE_DIRECTORY>
 	Order allow,deny
 	Allow from all
 </Directory>
-<Directory "/var/f5backup/ui/">
+<Directory BASE_DIRECTORY/ui/>
 	Order allow,deny
 	Allow from all
 </Directory>
-<Directory "/var/f5backup/db/">
+<Directory BASE_DIRECTORY/db/>
+	Order allow,deny
+	Allow from all
+</Directory>
+<Directory BASE_DIRECTORY/redirect/>
 	Order allow,deny
 	Allow from all
 </Directory>
 
 # F5 Web UI
-DocumentRoot "/var/f5backup/ui/"
+DocumentRoot "BASE_DIRECTORY/ui/"
 <VirtualHost *:80>
-   Redirect permanent / https://%{HTTP_HOST}/
+	# Port 80 listener for HTTPS redirects
+	DocumentRoot BASE_DIRECTORY/redirect
+	
+	# Send all requests to default page
+	RewriteEngine On
+	RewriteRule  ^/. /index.php
 </VirtualHost>
 <VirtualHost _default_:443>
 	SSLEngine on
-	SSLEngine on
 	SSLProtocol all -SSLv2
 	SSLCipherSuite ALL:!ADH:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+	
+	# SSL Certificates 
 	SSLCertificateFile /etc/pki/tls/certs/localhost.crt
 	SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
 
@@ -57,14 +67,21 @@ DocumentRoot "/var/f5backup/ui/"
 	TransferLog logs/ssl_access_log
 	LogLevel warn
 	CustomLog logs/ssl_request_log "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
-
-   DocumentRoot /var/f5backup/ui
+	
+	# Error page is default page
+	ErrorDocument 404 /index.php 	
+	
+   DocumentRoot BASE_DIRECTORY/ui
+	
+	# Make users browser cache images and css
 	<Location /images/>
 		Header Set Cache-Control "max-age=86400, public"
 	</Location>
 	<Location /css/>
 		Header Set Cache-Control "max-age=86400, public"
 	</Location>
+	
+	# Deny user access to include folder
 	<Location /include/>
 		Order allow,deny
 		Deny from all
@@ -108,7 +125,6 @@ LogFormat "%{Referer}i -> %U" referer
 LogFormat "%{User-agent}i" agent
 CustomLog logs/access_log combined
 
-## Server-Pool Size Regulation (MPM specific)
 # prefork MPM
 <IfModule prefork.c>
 StartServers       8
@@ -144,10 +160,6 @@ LoadModule headers_module modules/mod_headers.so
 LoadModule setenvif_module modules/mod_setenvif.so
 LoadModule mime_module modules/mod_mime.so
 LoadModule vhost_alias_module modules/mod_vhost_alias.so
-LoadModule negotiation_module modules/mod_negotiation.so
 LoadModule dir_module modules/mod_dir.so
-LoadModule speling_module modules/mod_speling.so
-LoadModule alias_module modules/mod_alias.so
-LoadModule substitute_module modules/mod_substitute.so
 LoadModule rewrite_module modules/mod_rewrite.so
 LoadModule ssl_module modules/mod_ssl.so
