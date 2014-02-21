@@ -83,7 +83,7 @@ if (isset($login) && $db_hash == $post_hash ) {
 <body>
 <div id="login">
 	<div id="header">
-		<div id="title">F5 Config Backup</div>
+		<div id="title">Config Backup for F5</div>
 		<div id="title2">Config Backups. Your way. <sup>( ! TM)</sup></div>
 	</div>
 	<div id="body">

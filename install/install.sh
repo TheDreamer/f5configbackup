@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # F5 backup installation script
-echo -e "Starting installation of F5 backup program.\n"
+echo -e "Starting installation of the Backup Program.\n"
 
 # Check perl version
 P_VER=`perl -e 'print $^V'`

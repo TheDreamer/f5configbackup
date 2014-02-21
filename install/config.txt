@@ -1,4 +1,4 @@
-# base directory for F5 backup
+# base directory for backup program
 BASE_DIRECTORY=$BASE_DIR
 
 # Archive directory for UCS files

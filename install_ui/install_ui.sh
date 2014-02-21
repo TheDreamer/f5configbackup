@@ -1,7 +1,7 @@
 #!/bin/bash
-# F5 backup web ui installation script
+# backup web ui installation script
 
-echo -e "Starting installation of F5 backup Web UI.\n"
+echo -e "Starting installation of the Backup Program Web UI.\n"
 
 #------------- Is this the root user ? ------------- 
 
@@ -65,7 +65,7 @@ fi
 echo -e " PDO_Sqlite is installed.\n"
 
 #------------- Location of backup program config file ------------- 
-echo -e "Where is the F5 Backup program config file ?"
+echo -e "Where is the Backup Program config file ?"
 echo "Press enter for default. [/var/f5backup/f5backup.conf]"
 read -e -r CONFIG_FILE
 

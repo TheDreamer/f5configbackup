@@ -12,7 +12,7 @@ switch ($_SERVER['REDIRECT_STATUS']) {
 		break;
 	default :
 		// If not then go to home page
-		$contents = "<p>Welcome to the F5 Config Backup program.</p>";
+		$contents = "<p>Welcome to the Config Backup for F5 program.</p>";
 		break;
 };
 
