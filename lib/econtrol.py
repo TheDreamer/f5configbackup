@@ -1,5 +1,22 @@
 #!/usr/bin/env python
-
+############################ LICENSE #################################################
+## Config Backup for F5 script. Perl script to manage daily backups of F5 BigIP devices
+## Copyright (C) 2013 Eric Flores
+##
+## This program is free software; you can redistribute it and/or
+## modify it under the terms of the GNU General Public License
+## as published by the Free Software Foundation; either version 2
+## of the License, or any later version.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+## You should have received a copy of the GNU General Public License
+## along with this program; if not, write to the Free Software
+## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#####################################################################################
 import sys, time, bigsuds
 from base64 import b64decode,b64decode
 
@@ -39,13 +56,14 @@ def file_download(bigip_obj,src_file,dst_file,chunk_size,buff = 1048576):
 		except:
 			e = sys.exc_info()[1]
 			timeout_error += 1
+			# is this the 3rd connection attempt?
 			if (timeout_error >= 3):
 				raise bigsuds.ConnectionError(e)
 			else:
-				#  Wait 2 seconds before retry
+				# Otherwise wait 2 seconds before retry
 				time.sleep(2)
 				continue
-		# reset error counter
+		# reset error counter after a good connect
 		timeout_error = 0
 		
 		# Write contents to file

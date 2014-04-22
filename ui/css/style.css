@@ -8,6 +8,9 @@ body {
 .error  {
 	color: FF0000;
 }
+.warning  {
+	color: FF8000;
+}
 img {
 	border-style:none;
 }
@@ -120,7 +123,6 @@ table.pagelet_table {
 	min-width: 150;
 }
 table.pagelet_table td {
-	text-align:center;
 	font-size:15px;
 	padding:2px 12px 2px 12px;
 }
@@ -136,6 +138,14 @@ tr.odd {
 	background-color:#FFFFFF;
 }
 tr.even {
+	background-color:#F4F4F4;
+}
+tr.odd_ctr {
+	text-align: center;
+	background-color:#FFFFFF;
+}
+tr.even_ctr {
+	text-align: center;
 	background-color:#F4F4F4;
 }
 table.pagelet_table  a {

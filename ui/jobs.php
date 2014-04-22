@@ -25,8 +25,8 @@ if ( $main_page ) {
 		$id = $row['ID'];
 		$date = $row['DATE'];
 		$time = date('Y-m-d H:i:s',$row['TIME']);
-		$class = "even";
-		if ($count & 1 ) {$class = "odd";};
+		$class = "even_ctr";
+		if ($count & 1 ) {$class = "odd_ctr";};
 		
 		$contents .= "\t<tr class=\"$class\"><td><a href=\"jobs.php?id=$id\">$date</a></tr>\n";
 		$count++;
@@ -34,11 +34,11 @@ if ( $main_page ) {
 	$contents .= "</table> \n";
 
 } else {
-# If yes show details on device
+# If yes show details on job
 	# Check ID query param, error page if not number
 	$ID = $_GET["id"];
 	if (is_numeric($ID)) {
-		# Get device from DB
+		# Get jobs from DB
 		$sth = $dbh->prepare("SELECT DATE,TIME,ERRORS,COMPLETE,DEVICE_TOTAL,DEVICE_COMPLETE"
 									.",DEVICE_W_ERRORS FROM JOBS WHERE ID = ?");
 		$sth->bindParam(1,$ID); 
@@ -51,15 +51,15 @@ if ( $main_page ) {
 		$complete = "No";
 		if ($row['COMPLETE'] = 1) {$complete = "Yes";};
 		$device_w_errors = explode(' ', $row['DEVICE_W_ERRORS']);
-		$log_file = file_get_contents("../log/$date-backup.log");
+		$log_file = htmlspecialchars(file_get_contents("../log/$date-backup.log"));
 
 		// Get device ID for hyperlink to device w/ errors
 		$error_list = '';
 		foreach ($device_w_errors as $i) {
-			$sth = $dbh->prepare("SELECT ID FROM DEVICES WHERE NAME = '$i'");
+			$sth = $dbh->prepare("SELECT NAME FROM DEVICES WHERE ID = '$i'");
 			$sth->execute();
-			$device_id = $sth->fetchColumn();
-			$error_list .= "<a href=\"/devices.php?id=\\$device_id\">$i</a> ";
+			$devname = $sth->fetchColumn();
+			$error_list .= "<a href=\"/devices.php?page=device&id=$i\">$devname</a> &nbsp";
 		};
 		
 		$contents = <<<EOD
@@ -67,7 +67,7 @@ if ( $main_page ) {
 		<tr class="pglt_tb_hdr">
 			<td>Time</td><td># of Errors</td><td>Job Complete</td><td>Devices /w Errors</td>
 		</tr>
-		<tr class="odd">
+		<tr class="odd_ctr">
 			<td>$time</td><td>$errors</td><td>$complete</td><td>$error_list</td>
 		</tr>
 	</table>

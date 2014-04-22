@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Create") {
 		$added_by = $_SESSION['user'];
 		$sth = $dbh->prepare("INSERT INTO USERS ('NAME','HASH','ADDED_BY','DATE_ADDED') VALUES (:username,:hash,'$added_by',$time)");
 		$sth->bindValue(':username',$username); 
-		$sth->bindValue('hash',$hash); 
+		$sth->bindValue(':hash',$hash); 
 		$sth->execute();
 	};
 

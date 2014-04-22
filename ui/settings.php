@@ -35,13 +35,13 @@ switch ( $_GET["page"] ) {
 	default:
 	// Main page
 		$admin = '';
-		if ($_SESSION['user'] == "admin" ) { $admin = '<tr class="odd"><td><a href="settings.php?page=admin">Admin User</a></td></tr>';};
+		if ($_SESSION['user'] == "admin" ) { $admin = '<tr class="odd_ctr"><td><a href="settings.php?page=admin">Admin User</a></td></tr>';};
 
 		$contents = <<<EOD
 		<table class="pagelet_table">
 		<tr class="pglt_tb_hdr"><td>Settings</td></tr>
-		<tr class="odd"><td><a href="settings.php?page=general">General</a></td></tr>
-		<tr class="even"><td><a href="settings.php?page=users">Users</a></td></tr>
+		<tr class="odd_ctr"><td><a href="settings.php?page=general">General</a></td></tr>
+		<tr class="even_ctr"><td><a href="settings.php?page=users">Users</a></td></tr>
 		$admin 
 	</table> \n
 EOD;

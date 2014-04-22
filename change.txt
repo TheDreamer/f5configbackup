@@ -18,3 +18,10 @@ Installed php-sqlite3 via yum
 to all dirs - chcon -Rv --type=httpd_sys_content_t 
 					chown -R root:apache
 					chmod -R 0770
+					
+					
+VM cloning
+http://blog.williamjamieson.me/2012/09/21/fix-eth0-network-interface-when-cloning-redhat-centos-or-scientific-virtual-machines-using-oracle-virtualbox-or-vmware/
+
+Remove the kernel’s networking interface rules file so that it can be regenerated
+# rm -f /etc/udev/rules.d/70-persistent-net.rules

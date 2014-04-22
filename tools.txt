@@ -1,0 +1,41 @@
+
+dev_folders = os.listdir(config['ARCHIVE_DIRECTORY'])
+for folder in dev_folders:
+	list = ['01','02','03','04','05','06','07','08','09','10','11',
+	'12','13','14','15','16','17','18']
+	for i in list:
+		open('%s/%s/2014-03-%s-%s-backup.ucs' % 
+		(config['ARCHIVE_DIRECTORY'],folder,i,folder)
+		, 'a').close()
+
+	
+echo -e "INSERT INTO JOBS VALUES(1,'1-1-1',12345,0,0,0,0,'');
+INSERT INTO JOBS VALUES(2,'1-1-1',12345,0,0,0,0,'');
+INSERT INTO JOBS VALUES(3,'1-1-1',12345,0,0,0,0,''); 
+INSERT INTO JOBS VALUES(4,'1-1-1',12345,0,0,0,0,''); 
+INSERT INTO JOBS VALUES(5,'1-1-1',12345,0,0,0,0,'');" |
+
+echo "test01-backup.log
+test02-backup.log
+test03-backup.log
+test04-backup.log
+test05-backup.log
+test06-backup.log
+test07-backup.log
+test08-backup.log
+test09-backup.log
+test10-backup.log
+test11-backup.log
+test12-backup.log
+test13-backup.log
+test14-backup.log
+test15-backup.log
+test16-backup.log
+test17-backup.log
+test18-backup.log
+test19-backup.log
+test20-backup.log
+test21-backup.log
+test22-backup.log
+test23-backup.log
+test24-backup.log" | xargs touch

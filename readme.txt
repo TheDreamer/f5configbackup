@@ -18,7 +18,14 @@ Config Backup for F5 release notes
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
 
-This product includes PHP software, freely available from <http://www.php.net/software/>
+This product includes PHP software, freely available from <www.php.net/software/>
+
+## Version 2.7 ##################################
+	Ported to Python 
+	Device communication through iControl (no more SSH)
+	Added cert info download
+	Added device info download
+	Added device add/delete through web UI
 
 ## Version 2.5 ##################################
 	Added WebUI
