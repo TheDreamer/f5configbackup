@@ -17,7 +17,7 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
-import sys, time, bigsuds
+import sys, time, bigsuds, os
 from base64 import b64decode,b64decode
 
 ############################################################################
@@ -43,7 +43,8 @@ def file_download(bigip_obj,src_file,dst_file,chunk_size,buff = 1048576):
 	
 	# Open file for writing, default buffer size is 1MB
 	try:
-		f_dst = open(dst_file,'w',buff)
+		# Open partial file for writing
+		f_dst = open(dst_file + '.part','w',buff)
 	except:
 		e = sys.exc_info()[1]
 		raise bigsuds.ConnectionError('Can\'t create file: %s' % e)
@@ -58,6 +59,9 @@ def file_download(bigip_obj,src_file,dst_file,chunk_size,buff = 1048576):
 			timeout_error += 1
 			# is this the 3rd connection attempt?
 			if (timeout_error >= 3):
+				# Close partial file & delete, raise error
+				f_dst.close()
+				os.remove(dst_file + '.part')
 				raise bigsuds.ConnectionError(e)
 			else:
 				# Otherwise wait 2 seconds before retry
@@ -74,7 +78,9 @@ def file_download(bigip_obj,src_file,dst_file,chunk_size,buff = 1048576):
 		# Check to see if chunk is end of file
 		fprogress = chunk['return']['chain_type']
 		if (fprogress == 'FILE_FIRST_AND_LAST')  or (fprogress == 'FILE_LAST' ):
+			# Close file, rename from name.part to name
 			f_dst.close()
+			os.rename(dst_file + '.part' , dst_file)
 			download = 0
 			return fbytes
 		
