@@ -32,6 +32,7 @@ from ecommon import *
 from econtrol import *
 
 # Open config file
+#----------------------------------------does not handle exceptions properly
 config = ecommon.configfile(sys.argv[1])
 
 # set global vars
@@ -42,6 +43,7 @@ dev_errors = []
 dev_complete = 0
 
 # If '-debug' is in args
+# ----------------------------------------------------need to figure out something for debug as a daemon
 ecommon.debug = 1 if next((arg for arg in sys.argv if '-debug' in arg),None) else 0
 
 
