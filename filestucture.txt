@@ -1,0 +1,41 @@
+File structure for F5 backup program -
+
+/opt/f5backup - 0760 - Base directory
+		| 
+		| --> api.py - 0760 - API program internal functions from apache
+		| --> f5backup.py - 0760 - main backup program
+		| --> version.txt - 0660 - text file containing the version of the F5 backup program
+		|
+		| ====> devices - directory for UCS archives
+		| ====> db - 0770 f5backup:apache - directory for db files
+		|		|
+		|		| --> main.db - 0770 f5backup:apache - db file for core backup program and apache
+		|
+		| ====> .keystore - 0700 - directory for any crypto keys
+		|		|
+		|		| --> backup.key - 0600 - key for credential encryption in DB 
+		|		| --> f5backup.crt - 0600 - certificate for apache
+		|		| --> f5backup.key - 0600 - private key for apache
+		|
+		| ====> lib - dir for various python libaries
+		|		|
+		|		| --> api_lib.py - 0660 - python lib for internal web api for misc php interfaces
+		|		| --> ecommon.py - 0660 - python lib 
+		|		| --> econtrol.py - 0660 - python lib for various custom iControl functions
+		|		| --> m2secret - 0660 - python lib for AES encrypt/decrypt function
+		|
+		| ====> log - 0760 f5backup:apache - folder for log files
+		|
+		| ====> pid - folder for pid files
+		|		|
+		|		| --> api.pid - pid file for api daemon when running
+		|
+		| ====> redirect - 0770 f5backup:apache - root folder for port 80 apache server
+		|		|
+		|		| --> index.php - " - index page for port http to https redirect
+		|
+		| ====> ui - 0770 f5backup:apache - root folder for port 443 apache server
+		|
+		|
+		|
+		|

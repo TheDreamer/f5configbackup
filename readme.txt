@@ -20,6 +20,9 @@ Config Backup for F5 release notes
 
 This product includes PHP software, freely available from <www.php.net/software/>
 
+## Version 3.0 ##################################
+	Created appliance
+
 ## Version 2.7 ##################################
 	Ported to Python 
 	Device communication through iControl (no more SSH)

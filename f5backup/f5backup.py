@@ -20,7 +20,7 @@
 #####################################################################################
 
 import os, sys, time
-from itertools import chain
+#from itertools import chain
 import sqlite3 as sq
 import bigsuds
 
@@ -28,15 +28,13 @@ import bigsuds
 sys.path.append('%s/lib' % sys.path[0])
 # Import F5 backup libs
 import ecommon
+import m2secret
 from ecommon import *
 from econtrol import *
 
-# Open config file
-#----------------------------------------does not handle exceptions properly
-config = ecommon.configfile(sys.argv[1])
-
 # set global vars
-base_dir = config['BASE_DIRECTORY']
+base_dir = sys.path[0]
+achive_dir = base_dir + '/devices'
 date = time.strftime("%Y-%m-%d",time.localtime()) 
 error = 0
 dev_errors = []
@@ -69,20 +67,19 @@ def add_error(device = ''):
 		logwr('Error: Can\'t update DB: add_error - %s' % e )	
 
 ############################################
-# getpass() - Gets password from file
-# Return - password string 
+# getcreds(key) - Gets user credentials from DB 
+# args - key: encryption key used by m2secret 
+# Return - dict of creds
 ############################################
-def getpass():
-	try:
-		ps = open( config['PASS_FILE'] , 'r')
-		password = ps.readline().rstrip()
-		ps.close()
-		return password
-	except:
-		e = sys.exc_info()[1]
-		logwr('Error: Can\'t open password file - %s \nExiting program!' % e)
-		add_error()
-		exit()
+def getcreds(key):
+	# Get user and encypted pass from DB, convert to dict of str types
+	dbc.execute("SELECT NAME,PASS FROM BACKUP_USER")
+	raw_creds = dict(zip( ['name','passwd'], [str(i) for i in dbc.fetchone()] ))
+	
+	# Decrypt pass and return dict of creds
+	secret = m2secret.Secret()
+	secret.deserialize(raw_creds['passwd'])
+	return { 'name' : raw_creds['name'], 'passwd' : secret.decrypt(key) }
 
 ############################################
 # jobid() - Create or clear job ID in DB
@@ -186,20 +183,20 @@ def get_certs(obj):
 ############################################
 # clean_archive() - Deletes old UCS files as
 #   set by UCS_ARCHIVE_SIZE setting
-############################################
+############################################ ------------------------------ Need to get archive dir another way
 def clean_archive():
-	dev_folders = os.listdir(config['ARCHIVE_DIRECTORY'])
+	dev_folders = os.listdir(achive_dir)
 	for folder in dev_folders:
 		# Get list of file from dir, match only ucs files, reverse sort
-		ucslist = os.listdir('%s/%s' % (config['ARCHIVE_DIRECTORY'],folder))
+		ucslist = os.listdir('%s/%s' % (achive_dir,folder))
 		ucslist = [i  for i in ucslist if '-backup.ucs' in i]
 		ucslist.sort(reverse=True)
 		# loop thought list from index of archive size onward
-		for ucs in ucslist[int(config['UCS_ARCHIVE_SIZE']):]:
+		for ucs in ucslist[ backup_config['UCS_ARCHIVE_SIZE']: ]:
 			# Delete files
 			ucsfile = '%s/%s' %(folder,ucs)
 			logwr('Deleting file at %s: %s' % (hmstime(),ucsfile))
-			os.remove('%s/%s' % (config['ARCHIVE_DIRECTORY'],ucsfile))
+			os.remove('%s/%s' % (achive_dir,ucsfile))
 
 ############################################
 # ucs_db() - Put ucs file names into DB
@@ -212,12 +209,12 @@ def ucs_db():
 	file_list = []
 	for dev in devices:
 		# Get list of file from dir, match only ucs files, sort
-		ucslist = os.listdir('%s/%s' % (config['ARCHIVE_DIRECTORY'],dev['name']))
+		ucslist = os.listdir('%s/%s' % (achive_dir,dev['name']))
 		ucslist = [i  for i in ucslist if '-backup.ucs' in i]
 		ucslist.sort()
 		
 		# add files to list
-		file_list += ([ (dev['id'],'%s/%s' % (config['ARCHIVE_DIRECTORY'],
+		file_list += ([ (dev['id'],'%s/%s' % (achive_dir,
 								'%s/' % dev['name']),ucs) for ucs in ucslist])
 	
 	# insert file info into DB
@@ -230,10 +227,10 @@ def ucs_db():
 ############################################
 def clean_logs():
 	# Get list of files, match only log files, reverse sort
-	logs = os.listdir('%s/log/' %base_dir)
+	logs = os.listdir('%s/log/' % base_dir)
 	logs = [i  for i in logs if '-backup.log' in i]
 	logs.sort(reverse=True)
-	for log in logs[int(config['LOG_ARCHIVE_SIZE']):]:
+	for log in logs[ backup_config['LOG_ARCHIVE_SIZE']: ]:
 		logwr('Deleting log file at %s: %s' % (hmstime(),log))
 		os.remove('%s/log/%s' % (base_dir,log))
 
@@ -245,7 +242,7 @@ def clean_jobdb():
 	dbc.execute('SELECT ID FROM JOBS')
 	jobs = [ idn[0] for idn in dbc.fetchall() ]
 	jobs.sort(reverse=True)
-	deljobs = jobs[int(config['LOG_ARCHIVE_SIZE']):]
+	deljobs = jobs[ backup_config['LOG_ARCHIVE_SIZE']: ]
 	dbc.executemany('DELETE FROM JOBS WHERE ID = ?', str(deljobs) )
 	db.commit()
 
@@ -262,11 +259,7 @@ except:
 	exit()
 
 logwr('Starting backup job on %s at %s'% (date,hmstime()))
-
-# Get password from file
-logwr('\nRetrieving password from file.')
-passwd = getpass()
-
+ 
 # Connect to DB
 logwr('\nOpening database file.')
 try:
@@ -278,6 +271,21 @@ except:
 	exit()
 
 dbc = db.cursor()
+
+# Get credentials from DB
+logwr('\nRetrieving credentials from DB.')
+try:
+	cryptokey = getpass(base_dir + '/.keystore/backup.key')
+	creds = getcreds(cryptokey)
+except:
+	e = sys.exc_info()[1]
+	logwr('Error: Can\'t get credentials from DB - %s \nExiting program!' % e)
+	add_error()
+	exit()
+
+# Get backup settings from DB
+dbc.execute("SELECT NAME,VALUE FROM BACKUP_SETTINGS_INT")
+backup_config = dict(dbc.fetchall())
 
 # Log job in DB
 job_id = jobid()
@@ -313,7 +321,7 @@ for dev in devices:
 	logwr('\nConnecting to %s at %s.' % (dev['name'],hmstime()))
 	# Create device folder if it does not exist
 	try:
-		os.mkdir('%s/%s' % (config['ARCHIVE_DIRECTORY'],dev['name']),0750)
+		os.mkdir('%s/%s' % (achive_dir,dev['name']),0750)
 	except OSError, e:
 		# If error is not from existing file errno 17
 		if e.errno != 17: 
@@ -321,13 +329,13 @@ for dev in devices:
 			add_error(str(dev['id']))
 			continue
 	else:
-		logwr('Created device directory %s at %s.' % ('%s/%s' % (config['ARCHIVE_DIRECTORY'],dev['name']),hmstime()))
+		logwr('Created device directory %s at %s.' % ('%s/%s' % (achive_dir,dev['name']),hmstime()))
 	
 	# Get IP for device or keep hostname if NULL
 	ip = dev['name'] if dev['ip'] == 'NULL' else dev['ip']
 	
 	# create connection object
-	b = bigsuds.BIGIP(hostname = ip, username = config['USERNAME'], password = passwd)
+	b = bigsuds.BIGIP(hostname = ip, username = creds['name'], password = creds['passwd']) 
 	
 	# Get device info
 	try:
@@ -357,7 +365,7 @@ for dev in devices:
 			b.System.ConfigSync.save_configuration(filename = 'configbackup.ucs',save_flag = 'SAVE_FULL')
 			dbytes = file_download(
 				b,'/var/local/ucs/configbackup.ucs',
-				'%s/%s/%s-%s-backup.ucs' % (config['ARCHIVE_DIRECTORY'],
+				'%s/%s/%s-%s-backup.ucs' % (achive_dir, 
 				dev['name'],date,dev['name']) ,65535
 			)
 			logwr('Downloaded UCS file for %s - %d bytes.' % (dev['name'],dbytes))
@@ -388,6 +396,10 @@ for dev in devices:
 		e = sys.exc_info()[1]
 		logwr('Error: Can\'t update DB: dev_complete - %s' % e )
 		add_error(str(dev['id']))
+
+# Clear creds & key
+creds = None
+cryptokey = None
 
 #  Add deletion note to log file
 logwr('\nDeleting old files:')

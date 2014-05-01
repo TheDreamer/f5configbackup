@@ -64,13 +64,23 @@ def configfile(cfgfile):
 		config = []
 		# Loop through config file lines
 		for i in tconf:
-			# take chars to the left of comments
+			# take text to the left of comments
 			i = i.rsplit('#')[0]
 			# of what's left, only take lines that have '='
 			if '=' in i:
 				# take only from the left of comments, remove tailing 
 				# white space, split into item=value into nested list 
 				# and append to list "config"
-				config.append(i.rsplit('#')[0].rstrip().split('='))
+				config.append(i.rstrip().split('='))
 		return dict(config)
 
+######################################################################
+# getpass() - Gets text from a single line file
+# 
+# Returns
+#   On success - string
+#   On fail - Exception with error 
+######################################################################
+def getpass(passfile):
+	with open(passfile,'r') as psfile:
+		return psfile.readline().rstrip()

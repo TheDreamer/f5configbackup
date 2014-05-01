@@ -1,23 +1,26 @@
 #!/usr/bin/env python
-import os
-import time
-
+#
+# fix logging
+#
+#
+import sys
 from daemon import runner
 from tornado.wsgi import WSGIContainer
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
-from api import app
 
+sys.path.append('%s/lib' % sys.path[0])
+from api_lib import app
 
 
 class webservice():
 
 	def __init__(self):
-	  self.stdin_path = '/dev/null'
-	  self.stdout_path = '/dev/tty'
-	  self.stderr_path = '/dev/tty'
-	  self.pidfile_path = '/opt/f5backup/pid/'
-	  self.pidfile_timeout = 5
+		self.stdin_path = '/dev/null'
+		self.stdout_path = '/dev/tty'
+		self.stderr_path = '/dev/tty'
+		self.pidfile_path = '/opt/f5backup/pid/api.pid'
+		self.pidfile_timeout = 5
 
 	def run(self):
 		http_server = HTTPServer(WSGIContainer(app))

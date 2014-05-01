@@ -1,7 +1,12 @@
+#!/usr/bin/env python
+import os, sys 
+from ecommon
 from flask import Flask, jsonify, abort, request, make_response
-import m2secret
 
-cryptokey = '' # key for crypto functions
+# Get program libs
+sys.path.append('%s/lib' % sys.path[0])
+import m2secret
+from ecommon import getpass
 
 app = Flask(__name__)
 
@@ -49,8 +54,17 @@ def encrypt():
 	elif not request.json or len(request.json['string']) == 0:
 		abort(400)
 	
+	# Get encryption password or give 500 error
+	try:
+		cryptokey = getpass('%s/.keystore/backup.key' % sys.path[0])
+	except:
+		abort(500)
+	
 	# Encrypt string and return response
 	secret = m2secret.Secret()
 	secret.encrypt(str(request.json['string']), cryptokey)
 	serialized = secret.serialize()
 	return jsonify( {'result' : serialized } )
+	
+	# Clear key from mem
+	cryptokey = None
