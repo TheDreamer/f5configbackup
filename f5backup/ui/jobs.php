@@ -17,7 +17,7 @@ if ( $main_page ) {
 	$contents .= "\t<tr class=\"pglt_tb_hdr\"><td>Date</td></tr>\n";
 
 	# Get list of jobs from DB
-	$sql = "SELECT ID,DATE,TIME FROM JOBS";
+	$sql = "SELECT ID,DATE,TIME FROM JOBS ORDER BY ID DESC";
 
 	# loop through array to make device table
 	$count = 1;

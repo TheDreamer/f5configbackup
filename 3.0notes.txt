@@ -32,7 +32,17 @@ mkdir /opt/f5backup/pid/
 chown f5backup:f5backup /opt/f5backup/pid/
 chmod 0755 /opt/f5backup/pid/
 
-
+setsebool -P httpd_can_network_connect 1
 
 http://nanvel.name/weblog/python-unix-daemon/
 http://www.gavinj.net/2012/06/building-python-daemon-process.html
+
+Icons - http://www.iconarchive.com/show/oxygen-icons-by-oxygen-icons.org.10.html
+http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/16/Status-user-online-icon.png
+http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/16/Actions-window-close-icon.png
+http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/16/Apps-preferences-web-browser-cache-icon.png
+
+http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Places-network-server-icon.png
+http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Places-certificate-server-icon.png
+http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Categories-applications-system-icon.png
+http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Actions-view-calendar-day-icon.png

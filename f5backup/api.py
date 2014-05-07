@@ -4,6 +4,7 @@
 #
 #
 import sys
+import tornado.options
 from daemon import runner
 from tornado.wsgi import WSGIContainer
 from tornado.httpserver import HTTPServer
@@ -11,7 +12,6 @@ from tornado.ioloop import IOLoop
 
 sys.path.append('%s/lib' % sys.path[0])
 from api_lib import app
-
 
 class webservice():
 

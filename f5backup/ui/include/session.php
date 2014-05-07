@@ -18,4 +18,5 @@ if(!(isset( $_SESSION['active']))) {
 		$_SESSION['time'] = time();
 	};
 };
+date_default_timezone_set(@date_default_timezone_get());
 ?>

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import os, sys 
-from ecommon
 from flask import Flask, jsonify, abort, request, make_response
 
 # Get program libs
@@ -14,15 +13,19 @@ app = Flask(__name__)
 ### Error handling 
 ############################################################
 @app.errorhandler(400)
-def not_found(error):
+def bad_request(error):
 	return make_response(jsonify( { 'error': 'BAD REQUEST' } ), 400)
 
 @app.errorhandler(404)
 def not_found(error):
 	return make_response(jsonify( { 'error': 'RESOURCE NOT FOUND' } ), 404)
 
+@app.errorhandler(405)
+def bad_method(error):
+	return make_response(jsonify( { 'error': 'METHOD NOT ALLOWED' } ), 405)
+
 @app.errorhandler(500)
-def not_found(error):
+def server_error(error):
 	return make_response(jsonify( { 'error': 'INTERNAL SERVER ERROR' } ), 500)
 
 ############################################################
@@ -44,6 +47,7 @@ Description - Encrypt string using key from file</p>
 @app.route("/api/v1.0/status")
 def status():
 	return jsonify( {'status' : 'ONLINE'} )
+	# return make_response(jsonify( {'status' : 'ONLINE'} ), 400)
 
 ### Encryption function - encrypt string using key from file
 @app.route('/api/v1.0/crypto/encrypt/', methods = ['POST'])

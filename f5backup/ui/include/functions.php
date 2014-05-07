@@ -41,5 +41,4 @@ function password ($password,$password2) {
 	$hash = crypt($password, '$2a$12$' . $salt);
 	return $hash;
 };
-
 ?>

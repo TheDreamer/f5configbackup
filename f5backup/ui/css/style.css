@@ -73,16 +73,34 @@ div#logout {
 	background-image:url('/images/logout.png');
 	background-repeat:repeat-x;
 }
+div#status {
+	position: absolute;
+	top: 45px;
+	left: 8px;
+	font-size: 12px;
+}
 div#user {
 	position: absolute;
 	top: 85px;
-	left: 8;
+	left: 8px;
 	font-size: 12px;
 }
 div#ip {
 	position: absolute;
 	top: 100px;
-	left: 8;
+	left: 8px;
+	font-size: 12px;
+}
+div#date {
+	position: absolute;
+	top: 85px;
+	right: 12px;
+	font-size: 12px;
+}
+div#time {
+	position: absolute;
+	top: 100px;
+	right: 12px;
 	font-size: 12px;
 }
 /* side menu elements */
