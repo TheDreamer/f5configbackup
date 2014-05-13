@@ -43,19 +43,27 @@ URI - /api/v1.0/crypto/encrypt/<br />
 Description - Encrypt string using key from file</p>
 <html>'''
 
-### Function to use as a health check for web service
+### Health check for web service and f5backup daemon
 @app.route("/api/v1.0/status")
 def status():
-	return jsonify( {'status' : 'ONLINE'} )
-	# return make_response(jsonify( {'status' : 'ONLINE'} ), 400)
+	try:
+		# Check for f5backup daemon
+		pid = int(getpass('%s/pid/f5backup.pid' % sys.path[0]))
+		os.kill(pid,0)
+		return jsonify( {'status' : 'ONLINE'} )
+	except:
+		return make_response(jsonify( { 'error': 'Backup service is down!' } ), 500)
 
 ### Encryption function - encrypt string using key from file
 @app.route('/api/v1.0/crypto/encrypt/', methods = ['POST'])
 def encrypt():
-	# Check for element string and that it is not blank
-	if 'string' not in request.json.keys():
-		abort(400)
-	elif not request.json or len(request.json['string']) == 0:
+	try:
+		# Check for element string and that it is not blank
+		if 'string' not in request.json.keys():
+			abort(400)
+		elif not request.json or len(request.json['string']) == 0:
+			abort(400)
+	except:
 		abort(400)
 	
 	# Get encryption password or give 500 error
@@ -68,7 +76,6 @@ def encrypt():
 	secret = m2secret.Secret()
 	secret.encrypt(str(request.json['string']), cryptokey)
 	serialized = secret.serialize()
-	return jsonify( {'result' : serialized } )
 	
-	# Clear key from mem
-	cryptokey = None
+	return jsonify( {'result' : serialized } )
+
