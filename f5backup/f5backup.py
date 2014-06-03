@@ -31,8 +31,8 @@ def dbtime():
 class f5backup():
 	def __init__(self):
 		self.stdin_path = '/dev/null'
-		self.stdout_path = '/dev/tty'
-		self.stderr_path = '/dev/tty'
+		self.stdout_path = '/dev/null'
+		self.stderr_path = '/dev/null'
 		self.pidfile_path = '/opt/f5backup/pid/f5backup.pid'
 		self.pidfile_timeout = 5
 	

@@ -15,8 +15,8 @@ class webservice():
 
 	def __init__(self):
 		self.stdin_path = '/dev/null'
-		self.stdout_path = '/dev/tty'
-		self.stderr_path = '/dev/tty'
+		self.stdout_path = '/dev/null'
+		self.stderr_path = '/dev/null'
 		self.pidfile_path = '/opt/f5backup/pid/api.pid'
 		self.pidfile_timeout = 5
 
@@ -30,10 +30,4 @@ class webservice():
 		IOLoop.instance().start()
 
 daemon_runner = runner.DaemonRunner( webservice() )
-
-try:
-	daemon_runner.do_action()
-except:
-	e = sys.exc_info()[1]
-	print 'Error: %s' % e
-	exit()
+daemon_runner.do_action()

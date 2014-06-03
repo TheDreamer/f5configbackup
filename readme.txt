@@ -22,6 +22,9 @@ This product includes PHP software, freely available from <www.php.net/software/
 
 ## Version 3.0 ##################################
 	Created appliance
+	Moved backup settings to web UI
+	Moved backup job credentials via web UI
+	Add status indication to webUI
 
 ## Version 2.7 ##################################
 	Ported to Python 

@@ -1,41 +1,47 @@
 File structure for F5 backup program -
 
-/opt/f5backup - 0760 - Base directory
+File/directory ownership is f5backup:f5backup unless documented otherwise
+
+/opt/f5backup - 770
+ - Base directory
 		| 
-		| --> api.py - 0760 - API program internal functions from apache
-		| --> f5backup.py - 0760 - main backup program
-		| --> version.txt - 0660 - text file containing the version of the F5 backup program
+		| --> api.py - 740 - API program daemon internal functions from apache
+		| --> f5backup.py - 740 - main backup program daemon
+		| --> version.txt - 660 - text file containing the version of the F5 backup program
 		|
-		| ====> devices - directory for UCS archives
-		| ====> db - 0770 f5backup:apache - directory for db files
+		| ====> devices 770 f5backup:apache - directory for UCS archives
+		|
+		| ====> db - 770 f5backup:apache - directory for db files
 		|		|
-		|		| --> main.db - 0770 f5backup:apache - db file for core backup program and apache
+		|		| --> main.db - 770 f5backup:apache - db file for core backup program and apache
 		|
-		| ====> .keystore - 0700 - directory for any crypto keys
+		| ====> .keystore - 700 - directory for any crypto keys
 		|		|
-		|		| --> backup.key - 0600 - key for credential encryption in DB 
-		|		| --> f5backup.crt - 0600 - certificate for apache
-		|		| --> f5backup.key - 0600 - private key for apache
+		|		| --> backup.key - 600 - key for credential encryption in DB 
+		|		| --> f5backup.crt - 600 - certificate for apache
+		|		| --> f5backup.key - 600 - private key for apache
 		|
-		| ====> lib - dir for various python libaries
+		| ====> lib - 770 - dir for various python libraries
 		|		|
 		|		| --> api_lib.py - 0660 - python lib for internal web api for misc php interfaces
-		|		| --> ecommon.py - 0660 - python lib 
+		|		| --> f5backup_lib.py - 0660 - python lib for f5backup operations
+		|		| --> ecommon.py - 0660 - python lib for common functions
 		|		| --> econtrol.py - 0660 - python lib for various custom iControl functions
 		|		| --> m2secret - 0660 - python lib for AES encrypt/decrypt function
 		|
-		| ====> log - 0760 f5backup:apache - folder for log files
+		| ====> log - 0770 f5backup:apache - folder for log files
+		|		|
+		|		| --> YYYY-MM-DD-backup.log - various logfiles for backup jobs, one per day
+		|		| --> api.log - access log file for internal tornado API with up to 2 "dot" files 
 		|
 		| ====> pid - folder for pid files
 		|		|
 		|		| --> api.pid - pid file for api daemon when running
+		|		| --> f5backup.pid - pif file for the f5backup daemon
 		|
 		| ====> redirect - 0770 f5backup:apache - root folder for port 80 apache server
 		|		|
-		|		| --> index.php - " - index page for port http to https redirect
+		|		| --> index.php - 0770 f5backup:apache - index page for port http to https redirect
 		|
-		| ====> ui - 0770 f5backup:apache - root folder for port 443 apache server
-		|
-		|
-		|
+		| ====> ui - 0770 f5backup:apache - root folder for port 443 apache server - will be documented in another file
 		|

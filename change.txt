@@ -1,15 +1,3 @@
-Installed GCC
-Installed perl-YAML
-cpan Module::Build
-cpan Module::Metadata
-
-Installed App::cpanminus via cpan
-Installed via cpanm - DBI
-Installed via cpanm - DateTime
-Installed via cpanm - Net::OpenSSH 
-Installed via cpanm - Config::Tiny
-Installed via cpanm - IO::Pty 
-
 Installed httpd via yum
 Installed php via yum
 Installed mod_ssl

@@ -275,10 +275,12 @@ def main():
 	except:
 		e = sys.exc_info()[1]
 		logwr('Error: Can\'t open data base - %s \nExiting program!' % e)
-		add_error()
 		exit()
 	
 	dbc = db.cursor()
+	
+	# Log job in DB
+	job_id = jobid()
 	
 	# Get credentials from DB
 	logwr('\nRetrieving credentials from DB.')
@@ -288,15 +290,12 @@ def main():
 	except:
 		e = sys.exc_info()[1]
 		logwr('Error: Can\'t get credentials from DB - %s \nExiting program!' % e)
-		add_error()
+		add_error(job_id)
 		exit()
 	
 	# Get backup settings from DB
 	dbc.execute("SELECT NAME,VALUE FROM BACKUP_SETTINGS_INT")
 	backup_config = dict(dbc.fetchall())
-	
-	# Log job in DB
-	job_id = jobid()
 	
 	# Get list of devices
 	dbc.execute("SELECT ID,NAME,IP,CID_TIME FROM DEVICES")
@@ -329,7 +328,7 @@ def main():
 		logwr('\nConnecting to %s at %s.' % (dev['name'],hmstime()))
 		# Create device folder if it does not exist
 		try:
-			os.mkdir('%s/devices/%s' % (sys.path[0],dev['name']),0750)
+			os.mkdir('%s/devices/%s' % (sys.path[0],dev['name']),0775)
 		except OSError, e:
 			# If error is not from existing file errno 17
 			if e.errno != 17: 

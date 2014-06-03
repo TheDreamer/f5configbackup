@@ -1,23 +1,53 @@
 #!/bin/bash
+BASE_DIR="/opt/f5backup"
+APACHE_USER="apache"
+APACHE_CONF="/etc/httpd/conf/httpd.conf"
+PHP_CONF="/etc/php.ini"
 
 # F5 backup installation script
 echo -e "Starting installation of the Backup Program.\n"
 
-# Check perl version
-P_VER=`perl -e 'print $^V'`
-echo -e "Your version of perl is $P_VER.\n"
+# ------------- Check for root install -------------
+if [ $(whoami) != "root" ]; then
+	echo "Not root user. Must be root user or sudo."
+	exit
+fi
 
-# ------------ Check for perl modules --------------------------------------
-echo "Checking for perl for required modules -"
+# ------------- Check for python -------------
+PY=$(python -c "print 'python'")
+if [ "$PY" != "python" ]; then
+	echo -e "\nPython not installed. Please install and try again."
+	exit
+fi
 
-# Put perl modules in this list
+# ------------- Check python version -------------
+echo -e "import sys \nprint 'Your version of python is %s' % sys.version.split(' ')[0]" | python
+
+PVER=$(echo -e "
+import sys
+ver = sys.version_info[0] + (sys.version_info[1] / 10)
+if (ver < 2.6 or ver > 2.8):
+  print 'yes'
+else:
+  print 'not'" | python)
+
+if [ "$PVER" != "yes" ]; then
+	echo 'Error: Your version of python is not compatible with this script!'
+	echo 'Must use python version 2.6 to 2.7'
+	exit
+fi
+
+# ------------ Check for python modules -------------
+echo "Checking for python for required modules -"
+
+# Put python modules in this list
 MODULES="
-DateTime
-Net::OpenSSH
-Config::Tiny
-DBI
-DBD::SQLite
-IO::Pty
+tornado
+daemon
+sqlite3
+flask
+bigsuds
+M2Crypto
 "
 
 # Loop through module list and break if module not present
@@ -25,13 +55,13 @@ ERROR=""
 NOT_INSTALLED=0
 
 for i in $MODULES ; do
-	RESULT=`perl -M$i -e 'print "yes";' 2> /dev/null`
-	RESULT+="-one"     # prevents  unary operator expected error
-	if [ $RESULT == "yes-one" ]; then
-		echo "  $i is installed."
-	else
+	RESULT=$(echo -e "try: \n  import $i\nexcept: \n  print 'not'" | python)
+	RESULT+="-in"     # prevents  unary operator expected error
+	if [ $RESULT == "not-in" ]; then
 		ERROR+="$i is not installed. Please install before continuing.\n"
 		(( NOT_INSTALLED++ ))
+	else
+		echo "  $i is installed."
 	fi
 done
 
@@ -40,7 +70,7 @@ if [ $NOT_INSTALLED != 0 ] ; then
 	echo -e "\n\n$ERROR"
 	exit
 fi
-echo "Perl modules are good!"
+echo "Python modules are good!"
 
 # ------------ SQLite3 installation check -----------------------------------
 sql=`sqlite3 -version 2> /dev/null`
@@ -48,147 +78,165 @@ if [ -z $sql ]; then
 	echo -e "\nSqllite not installed. Please install and try again.\n"
 	exit
 fi
-
-# ------------ Ask user for base directory ------------------------------------
-echo -e "\nWhat directory would you like to install this program in ?"
-echo "Press enter for default. [/var/f5backup]"
-read -e -r BASE_DIR
-
-# If entry is blank set BASE_DIR to default
-if [ -z $BASE_DIR ]; then
-	BASE_DIR="/var/f5backup"
-fi 
-echo -e "\nBase directory is $BASE_DIR."
-echo -e "Checking if $BASE_DIR exists...\n"
-
-# Check if base directory exists
-if [ -d "$BASE_DIR" ]; then 
-	echo "$BASE_DIR does exist."
-	echo "This will overwrite any files already in the directory. Do you want to continue ?"; 
-	# Loop until user provides correct answer
-	while : ; do
-		read -p "Type yes or no: " YES_NO
-		if [ $YES_NO == "yes" ]; then
-			echo -e "\nOverwriting old files."
-			break
-		elif [ $YES_NO == "no" ]; then
-			echo -e "\nPlease choose another directory."
-			exit
-		fi
-	done
-else
-	echo "$BASE_DIR does not exist. Creating directory."; 
-	mkdir -p $BASE_DIR
-	if [ $? = 1 ]; then
-		echo -e "\nCould not create directory. Please solve issue and try again."
-		exit
-	fi
-fi
-
-# ---------------- Ask user for archive directory -----------------------------------------
-echo -e "\nWhat directory would you like to be the device archive ?"
-echo "Press enter for default. [$BASE_DIR/devices]"
-read -e -r ARCHIVE_DIRECTORY
-
-# If entry is blank set ARCHIVE_DIRECTORY to default
-if [ -z $ARCHIVE_DIRECTORY ]; then
-	ARCHIVE_DIRECTORY="$BASE_DIR/devices"
-fi 
-echo -e "\nArchive directory is $ARCHIVE_DIRECTORY."
-echo -e "Checking if $ARCHIVE_DIRECTORY exists...\n"
-
-# Check if directory exists
-if [ -d "$ARCHIVE_DIRECTORY" ]; then 
-	echo "$ARCHIVE_DIRECTORY already exists."
-else
-	echo "$ARCHIVE_DIRECTORY does not exist. Creating directory."; 
-	mkdir $ARCHIVE_DIRECTORY
-	if [ $? = 1 ]; then
-		echo -e "\nCould not create directory. Please solve issue and try again."
-		exit
-	fi
-fi
-
-# ---------------- Ask user for device list -----------------------------------------
-
-echo -e "\nWhat file would would you like to use for the device list ?"
-echo "Put file name only. List will be created in install directory location."
-echo "Press enter for default. [list.txt]"
-read -e -r DEVICE_LIST
-
-# If entry is blank set DEVICE_LIST to default
-if [ -z $DEVICE_LIST ]; then
-	DEVICE_LIST="list.txt"
-fi 
-echo -e "\nCreating device list $BASE_DIR/$DEVICE_LIST."
-cp list.txt $BASE_DIR/$DEVICE_LIST
-
-if [ $? = 1 ]; then
-	echo -e "\nCould not create device list. Please solve issue and try again."
+# ------------ Apache installation check -----------------------------------
+echo -e "\nChecking for Apache."
+APACHE=$(apachectl -v 2> /dev/null | grep version | cut -d : -f2)
+if [ -z "$APACHE" ]; then 
+	echo -e 'Apache not installed! Please install.'
 	exit
 fi
+echo -e " Version info - $APACHE"
 
-# ---------------- Ask user about config file -----------------------------------------
-# Username 
-echo -e "\nWhat username would you like to use for device login ? "
-echo "The user needs to be an administrator on the F5 so that it can create UCS files."
-echo "Press enter for default. [admin]"
-read USERNAME
-
-# If entry is blank set USERNAME to default
-if [ -z $USERNAME ]; then
-	USERNAME="admin"
-fi 
-
-# Password file
-echo -e "\nWhat password file would you like to use for device login ?"
-echo "Recommend file be in users home directory with proper file ownership and attributes of 0400 (readable by user only)"
-read -e -r PASS_FILE
-
-# Archive size
-echo -e "\nHow many backup files do you want to keep for each device ?"
-echo "Press enter for default. [15]"
-read  UCS_ARCHIVE_SIZE
-
-# If entry is blank set UCS_ARCHIVE_SIZE to default
-if [ -z $UCS_ARCHIVE_SIZE ]; then
-	UCS_ARCHIVE_SIZE=15
+#------------- Check for mod_ssl ------------- 
+echo -e "\nChecking for mod_ssl in apache."
+SSL=$(apachectl -M 2> /dev/null | grep ssl)
+if [ -z "$SSL" ]; then 
+	echo -e " Mod SSL not installed! Please install."
+	exit
 fi
+echo -e " Mod SSL is installed.\n"
 
-# Log archive size
-echo -e "\nHow many backup files do you want to keep for each device ?"
-echo "Press enter for default. [30]"
-read  LOG_ARCHIVE_SIZE
-
-# If entry is blank set LOG_ARCHIVE_SIZE to default
-if [ -z $LOG_ARCHIVE_SIZE ]; then
-	LOG_ARCHIVE_SIZE=30
+#------------- Check for php ------------- 
+echo -e "Checking for PHP."
+PHP=$(php -v 2> /dev/null | sed q | cut -d ' ' -f 1-2)
+if [ -z "$PHP" ]; then
+	echo -e ' PHP is not installed! Please install.'
+	exit
 fi
+echo -e " Version - $PHP"
+MOD_PHP=$(apachectl -M 2> /dev/null | grep php)
+if [ -z "$MOD_PHP" ]; then 
+	echo -e ' Mod PHP not installed! Please install.'
+	exit
+fi
+echo -e " Mod PHP is installed."
+
+#------------- Check for PDO ------------- 
+echo -e "\nChecking for PHP PDO SQLite driver."
+PDO=$(php -m 2> /dev/null | grep pdo_sqlite)
+if [ -z "$PDO" ]; then
+	echo -e " PDO_Sqlite is not installed! Please install."
+	exit
+fi
+echo -e " PDO_Sqlite is installed."
 
 
-# Create DB
+# ------------- Create directories -------------
+echo -e "\nCreating directories to $BASE_DIR."
+mkdir $BASE_DIR
+mkdir $BASE_DIR/devices
+mkdir $BASE_DIR/db
+mkdir $BASE_DIR/.keystore
+mkdir $BASE_DIR/log
+mkdir $BASE_DIR/pid
+
+
+#------------- Copy files -------------
+echo -e "\nCopying files to $BASE_DIR."
+cp -R f5backup/* $BASE_DIR
+
+#------------- Create f5ackup user -------------
+echo -e "\nCreating user \"f5backup\"."
+useradd f5backup
+openssl rand -base64 129 | tr -d '\n' | passwd f5backup --stdin
+passwd f5backup -l > /dev/null
+
+#------------- Create backup key -------------
+touch $BASE_DIR/.keystore
+chmod 0600 $BASE_DIR/.keystore/
+openssl rand -base64 129 | tr -d '\n' > $BASE_DIR/.keystore/backup.key
+
+
+# ------------- Create new SSL certificate -------------
+echo -e "\nCreating new SSL certificate."
+echo > $BASE_DIR/.keystore/f5backup.key
+echo > $BASE_DIR/.keystore/f5backup.crt
+chown f5backup:f5backup $BASE_DIR/.keystore/f5backup.*
+chmod 0600 $BASE_DIR/.keystore/f5backup.*
+chcon -R -t cert_t $BASE_DIR/.keystore/f5backup.*
+openssl req -x509 -nodes -config openssl.cnf -days 3650 \
+ -newkey rsa:2048 -keyout $BASE_DIR/.keystore/f5backup.key \
+ -out $BASE_DIR/.keystore/f5backup.crt
+
+#------------- apache config -------------
+cp $APACHE_CONF $APACHE_CONF.orig
+cp httpd.conf $APACHE_CONF
+
+cp $PHP_CONF $PHP_CONF.orig
+cp php.ini $PHP_CONF
+
+#------------- Create DB -------------
+
 echo -e "\nCreating DB file $BASE_DIR/db/main.db"
 
-mkdir $BASE_DIR/db
 echo > $BASE_DIR/db/main.db
 cat db.txt | sqlite3 $BASE_DIR/db/main.db
 
-
-# Create config file
-echo -e "\nCreating config file $BASE_DIR/f5backup.conf with the options you selected."
-
-eval echo -e "\"$(<config.txt)\"" > $BASE_DIR/f5backup.conf
-
-echo -e "\nCopying f5backup.pl file to $BASE_DIR/"
-cp ./f5backup.pl $BASE_DIR/f5backup.pl
-chmod 0755 $BASE_DIR/f5backup.pl
-
-echo -e "\nCopying testssh.pl file to $BASE_DIR/"
-cp ./testssh.pl $BASE_DIR/testssh.pl
-chmod 0755 $BASE_DIR/testssh.pl
+#------------- Change file ownership -------------
+echo -e "\nSetting directory ownership."
+chown -R f5backup:f5backup $BASE_DIR/
+chown -R f5backup:$APACHE_USER $BASE_DIR/devices
+chown -R f5backup:$APACHE_USER $BASE_DIR/db
+chown -R f5backup:f5backup $BASE_DIR/lib
+chown -R f5backup:f5backup $BASE_DIR/.keystore
+chown f5backup:$APACHE_USER $BASE_DIR/log
+chown f5backup:f5backup $BASE_DIR/pid
+chown -R f5backup:$APACHE_USER $BASE_DIR/redirect
+chown -R f5backup:$APACHE_USER $BASE_DIR/ui
 
 
-echo -e "\nCreating log directory $BASE_DIR/log"
-mkdir $BASE_DIR/log
+#------------- Change file permissions -------------
+echo -e "\nSetting file permissions."
+chmod 0660 $BASE_DIR/*
+chmod 0740 $BASE_DIR/*.py
+chmod 0660 $BASE_DIR/db/*
+chmod 0660 $BASE_DIR/lib/*
+chmod 0400 $BASE_DIR/.keystore/*
+chmod 0770 $BASE_DIR/redirect/*
+chmod -R 0660 $BASE_DIR/ui/*
+chmod 0770 $BASE_DIR/ui/*.php
+chmod -R 0770 $BASE_DIR/ui/include/
 
-echo -e "\nDone installing program. Check $BASE_DIR for file contents."	
+#------------- Change folder permissions -------------
+echo -e "\nSetting directory permissions."
+chmod 0775 $BASE_DIR
+chmod 0770 $BASE_DIR/devices
+chmod 0770 $BASE_DIR/db
+chmod 0770 $BASE_DIR/lib
+chmod 0700 $BASE_DIR/.keystore
+chmod 0770 $BASE_DIR/log
+chmod 0770 $BASE_DIR/pid
+chmod 0770 $BASE_DIR/redirect
+chmod 0770 $BASE_DIR/ui
+chmod 0770 $BASE_DIR/ui/css
+chmod 0770 $BASE_DIR/ui/images
+
+#------------- SELinux tag for apache -------------
+echo -e "\nSetting SELinux permissions."
+chcon -R --type=httpd_sys_content_t $BASE_DIR/db
+chcon -R --type=httpd_sys_content_t $BASE_DIR/devices
+chcon -R --type=httpd_sys_content_t $BASE_DIR/ui 
+chcon -R --type=httpd_sys_content_t $BASE_DIR/redirect
+chcon -R --type=httpd_sys_content_t $BASE_DIR/log
+chcon -R --type=httpd_sys_content_t $BASE_DIR/log
+setsebool -P httpd_can_network_connect 1
+
+#------------- Inint scripts -------------------
+echo -e "\nCopying init scripts."
+cp backupapi.sh /etc/init.d/backupapi
+cp f5backup.sh /etc/init.d/f5backup
+
+chmod u+x /etc/init.d/backupapi
+chmod u+x /etc/init.d/f5backup
+
+chkconfig --add f5backup
+chkconfig --add backupapi
+
+chkconfig f5backup on
+chkconfig backupapi on
+chkconfig httpd on
+
+#********************** ALL DONE ***********************
+echo -e "\nInstallation completed."	
+
+
