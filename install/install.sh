@@ -142,8 +142,8 @@ openssl rand -base64 129 | tr -d '\n' | passwd f5backup --stdin
 passwd f5backup -l > /dev/null
 
 #------------- Create backup key -------------
-touch $BASE_DIR/.keystore
-chmod 0600 $BASE_DIR/.keystore/
+touch $BASE_DIR/.keystore/backup.key
+chmod 0600 $BASE_DIR/.keystore/backup.key
 openssl rand -base64 129 | tr -d '\n' > $BASE_DIR/.keystore/backup.key
 
 

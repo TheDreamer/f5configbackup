@@ -14,7 +14,7 @@ PID='/opt/f5backup/pid/f5backup.pid'
 DAEMON='/opt/f5backup/f5backup.py'
 
 start() {
-	echo -n "Starting Down F5 Backup Program: "
+	echo -n "Starting F5 Backup Program: "
 	if [ ! -e $PID ] ; then
 		su -c "$DAEMON start" f5backup
 		echo_success
