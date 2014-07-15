@@ -79,11 +79,11 @@ def getcreds(key):
 	secret.deserialize(raw_creds['passwd'])
 	return { 'name' : raw_creds['name'], 'passwd' : secret.decrypt(key) }
 
-############################################
-# jobid() - Create or clear job ID in DB
-# 	Returns int of job ID
-############################################
 def jobid():
+	'''
+jobid() - Create or clear job ID in DB
+Returns - int of job ID
+	'''
 	# Check for job on same date
 	dbc.execute("SELECT ID FROM JOBS WHERE DATE = ?", (date,))
 	row = dbc.fetchone()
@@ -110,11 +110,12 @@ def jobid():
 		exit()
 	return jobid
 
-############################################
-# dev_info(bigsuds_obj,dev_id) - gets bigip info 
-#  from device and inserts into DB
-############################################
+
 def dev_info(obj,dev_id):
+	'''
+dev_info(bigsuds_obj,dev_id) - gets bigip info 
+ from device and inserts into DB
+	'''
 	dinfo = device_info(obj)
 	dinfo.update(active_image(obj))
 	dbc.execute('''UPDATE DEVICES SET VERSION = ?,
@@ -136,11 +137,11 @@ def dev_info(obj,dev_id):
 			)
 	db.commit() 
 
-############################################
-# get_certs(bigsuds_obj,dev_id) - gets cert info 
-#  from device and inserts into DB
-############################################
 def get_certs(obj,dev_id):
+	'''
+get_certs(bigsuds_obj,dev_id) - gets cert info 
+  from device and inserts into DB	
+	'''
 	ha_pair = obj.System.Failover.is_redundant()
 	standby = obj.System.Failover.get_failover_state()
 	# Is device stand alone or active device?
@@ -176,11 +177,11 @@ def get_certs(obj,dev_id):
 	else:
 		logwr('Device is not standalone or active unit. Skipping cert info download at %s.' % hmstime() )
 
-############################################
-# clean_archive() - Deletes old UCS files as
-#   set by UCS_ARCHIVE_SIZE setting
-############################################ 
 def clean_archive(num):
+	'''
+clean_archive() - Deletes old UCS files as
+  set by UCS_ARCHIVE_SIZE setting	
+	'''
 	dev_folders = os.listdir(sys.path[0] + '/devices')
 	for folder in dev_folders:
 		# Get list of file from dir, match only ucs files, reverse sort
@@ -194,11 +195,10 @@ def clean_archive(num):
 			logwr('Deleting file at %s: %s' % (hmstime(),ucsfile))
 			os.remove('%s/devices/%s' % (sys.path[0], ucsfile))
 
-############################################
-# ucs_db(device_dict) - Put ucs file names into DB
-# 
-############################################
 def ucs_db(device_dict):
+	'''
+ucs_db(device_dict) - Put ucs file names into DB	
+	'''
 	# Clear DB entries
 	dbc.execute("DELETE FROM ARCHIVE")
 	db.commit()
@@ -218,11 +218,11 @@ def ucs_db(device_dict):
 	dbc.executemany("INSERT INTO ARCHIVE ('DEVICE','DIR','FILE') VALUES (?,?,?);", file_list)
 	db.commit()
 
-############################################
-# clean_logs() - Deletes old log files as
-#   set by LOG_ARCHIVE_SIZE setting
-############################################ 
 def clean_logs(num):
+	'''
+clean_logs() - Deletes old log files as
+  set by LOG_ARCHIVE_SIZE setting
+	'''
 	# Get list of files, match only log files, reverse sort
 	logs = os.listdir('%s/log/' % sys.path[0])
 	logs = [i  for i in logs if '-backup.log' in i]
@@ -231,11 +231,11 @@ def clean_logs(num):
 		logwr('Deleting log file at %s: %s' % (hmstime(),log))
 		os.remove('%s/log/%s' % (sys.path[0],log))
 
-############################################
-# clean_logdb() - Deletes old job info from
-#   BD as set by LOG_ARCHIVE_SIZE setting 
-############################################
 def clean_jobdb(num):
+	'''
+clean_logdb() - Deletes old job info from
+  BD as set by LOG_ARCHIVE_SIZE setting 
+	'''
 	dbc.execute('SELECT ID FROM JOBS')
 	jobs = [ idn[0] for idn in dbc.fetchall() ]
 	jobs.sort(reverse=True)

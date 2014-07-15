@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ############################ LICENSE #################################################
-## Config Backup for F5 script. Perl script to manage daily backups of F5 BigIP devices
+## Config Backup for F5 script. Python script to manage daily backups of F5 BigIP devices
 ## Copyright (C) 2013 Eric Flores
 ##
 ## This program is free software; you can redistribute it and/or
@@ -17,24 +17,36 @@
 ## along with this program; if not, write to the Free Software
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
+
+'''
+This module contains various functions for F5 iControl operations.
+Written by Eric Flores
+
+Functions in this module -
+   file_download - Download file from F5 via iControl
+   active_image - Return a list of the active image
+   device_info - returns useful info about F5 device
+
+'''
+
 import sys, time, bigsuds, os
 from base64 import b64decode,b64decode
 
-############################################################################
-# file_download - Download file from F5
-# Usage - file_download(bigip_obj,src_file,dst_file,chunk_size,buff = n)
-#		bigip_obj - the bigsuds icontol object
-#		src_file - file on F5
-#		dst_file - local file
-#		chunk_size - download size for each chunk
-#		buff - (optional) size of file write buffer, default 1MB
-# Returns - list  
-# Element 0 - Job completed - True/False
-# Element 1 - dict keys - 
-#			  bytes - returns file size in bytes if job completed
-#			  error - returns error message if job failed
-############################################################################
 def file_download(bigip_obj,src_file,dst_file,chunk_size,buff = 1048576):
+	'''
+file_download - Download file from F5 via iControl
+Usage - file_download(bigip_obj,src_file,dst_file,chunk_size,buff = n)
+    bigip_obj - the bigsuds icontol object
+    src_file - file on F5
+    dst_file - local file
+    chunk_size - download size for each chunk
+    buff - (optional) size of file write buffer, default 1MB
+Returns - list  
+Element 0 - Job completed - True/False
+Element 1 - dict keys - 
+            bytes - returns file size in bytes if job completed
+            error - returns error message if job failed
+	'''
 	# Set begining vars
 	download = 1
 	foffset = 0
@@ -87,27 +99,27 @@ def file_download(bigip_obj,src_file,dst_file,chunk_size,buff = 1048576):
 		# set new file offset
 		foffset = chunk['file_offset']
 
-############################################################################
-# active_image - Return a list of the active image
-# Usage - active_image(obj)
-#		  obj - The bigsuds connection object
-# Returns - dict
-#     {'version': 'str', 'build': 'str', 'partition': 'str'}
-############################################################################
 def active_image(obj):
+	'''
+active_image - Return a list of the active image
+Usage - active_image(obj)
+     obj - The bigsuds connection object
+Returns - dict
+     {'version': 'str', 'build': 'str', 'partition': 'str'}
+	'''
 	software = obj.System.SoftwareManagement.get_all_software_status()
 	for i in software:
 		if i['active'] == True:
 			return {'version' : i['version'], 'build' : i['build'], 'partition' : i['installation_id']['install_volume']}
 
-############################################################################
-# device_info - returns useful info about F5 device
-# Usage - device_info(obj)
-#		  obj - The bigsuds connection object 
-# Returns - dict
-#		  {'model': 'str', 'hostname': 'str', 'type': 'str', 'serial': 'str'}
-############################################################################
 def device_info(obj):
+	'''
+device_info - returns useful info about F5 device
+Usage - device_info(obj)
+        obj - The bigsuds connection object 
+Returns - dict
+        {'model': 'str', 'hostname': 'str', 'type': 'str', 'serial': 'str'}
+	'''
 	device = obj.System.SystemInfo.get_system_information()
 	return {'hostname' : device['host_name'],'model' : device['platform'], 'type' : device['product_category'], 'serial' : device['chassis_serial']}
 

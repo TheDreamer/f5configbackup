@@ -7,10 +7,10 @@ from daemon import runner
 sys.path.append('%s/lib' % sys.path[0])
 import f5backup_lib
 
-############################################
-# dbtime() - Get backup time from DB
-############################################
 def dbtime():
+	'''
+dbtime() - Get backup time from DB
+	'''
 	try:
 		# Connect to DB
 		db = sq.connect(sys.path[0] + '/db/main.db')

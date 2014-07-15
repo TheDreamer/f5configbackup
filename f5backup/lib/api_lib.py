@@ -43,9 +43,11 @@ URI - /api/v1.0/crypto/encrypt/<br />
 Description - Encrypt string using key from file</p>
 <html>'''
 
-### Health check for web service and f5backup daemon
 @app.route("/api/v1.0/status")
 def status():
+	'''
+Health check for web service and f5backup daemon
+	'''
 	try:
 		# Check for f5backup daemon
 		pid = int(getpass('%s/pid/f5backup.pid' % sys.path[0]))
@@ -54,9 +56,11 @@ def status():
 	except:
 		return make_response(jsonify( { 'error': 'Backup service is down!' } ), 500)
 
-### Encryption function - encrypt string using key from file
 @app.route('/api/v1.0/crypto/encrypt/', methods = ['POST'])
 def encrypt():
+	'''
+Encryption function - encrypt string using key from file
+	'''
 	try:
 		# Check for element string and that it is not blank
 		if 'string' not in request.json.keys():
