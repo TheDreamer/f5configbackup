@@ -27,154 +27,191 @@ import logging as log
 # Add fbackup lib folder to sys.path 
 sys.path.append('%s/lib' % sys.path[0])
 # Import F5 backup libs
-import ecommon
 import m2secret
 from econtrol import *
 
-# Define global vars
-error = None
-dev_errors = None
-db = None 
-dbc = None 
-date = None
 
-
-############################################
-# Error function
-############################################
-def add_error(jobid, device = ''):
-	#Inc error counter
-	global error,dev_errors
-	error += 1
-	
-	#If device error add to list
-	if len(device):
-		dev_errors.append(device)
-	
-	# Insert error status into DB
-	try:
-		dbc.execute('''UPDATE JOBS SET ERRORS = $ERROR, DEVICE_W_ERRORS = ? 
-							WHERE ID = ?''', (error,' '.join(dev_errors),jobid) )
-		db.commit()
-	except:
-		e = sys.exc_info()[1]
-		log.error('Can\'t update DB: add_error - %s' % e)
-
-
-
-
-def getcreds(key):
+class _JobFunctions(object):
 	'''
+This class contains all of the functions for the backup program 
+that need access to the shared objects.
+	'''
+	def __init__(self,v_db,v_dbc,v_date):
+		self.error = 0
+		self.dev_errors = []
+		self.db = v_db
+		self.dbc = v_dbc
+		self.date = v_date
+		self.job_id = self.jobid()
+
+	def jobid(self):
+		'''
+jobid() - Create or clear job ID in DB
+Returns - int of job ID
+		'''
+		# Check for job on same date
+		self.dbc.execute("SELECT ID FROM JOBS WHERE DATE = ?", (self.date,))
+		row = self.dbc.fetchone()
+		
+		try:
+			if row:
+				# Overwrite job info if same date
+				self.dbc.execute('''UPDATE JOBS SET TIME = ?, COMPLETE = 0, 
+					ERRORS = 0, DEVICE_TOTAL = 0,	DEVICE_COMPLETE = 0, 
+					DEVICE_W_ERRORS = '0' WHERE ID = ?''',(int(time.time()),row[0]) )
+				self.db.commit()
+				jobid = row[0]
+			else:
+				# Create new job info
+				self.dbc.execute('''INSERT INTO JOBS ('DATE','TIME','ERRORS','COMPLETE',
+									'DEVICE_TOTAL','DEVICE_COMPLETE','DEVICE_W_ERRORS') 
+									VALUES (?,?,0,0,0,0,0)''', (self.date,int(time.time())) )
+				self.db.commit()
+				# Get new job ID
+				jobid = self.dbc.lastrowid
+		except:
+			e = sys.exc_info()[1]
+			log.error('Can\'t update DB: job id - %s' % e )
+			exit()
+		return jobid
+	
+	def add_error(self,device = ''):
+		'''
+This function increments the error counter for the job,
+appends the device IDs to a list if one device has an issue
+and inserts into DB.
+		'''
+		self.error += 1
+		#If device error add to list
+		if len(device):
+			self.dev_errors.append(device)
+		
+		# Insert error status into DB
+		try:
+			self.dbc.execute('''UPDATE JOBS SET ERRORS = $ERROR, DEVICE_W_ERRORS = ? 
+								WHERE ID = ?''', (self.error,' '.join(self.dev_errors),self.job_id) )
+			self.db.commit()
+		except:
+			e = sys.exc_info()[1]
+			log.error('Can\'t update DB: add_error - %s' % e)
+	
+	def getcreds(self,key):
+		'''
 getcreds(key) - Gets user credentials from DB 
 args - key: encryption key used by m2secret 
 Return - dict of creds
-	'''
-	# Get user and encypted pass from DB, convert to dict of str types
-	dbc.execute("SELECT NAME,PASS FROM BACKUP_USER")
-	raw_creds = dict(zip( ['name','passwd'], [str(i) for i in dbc.fetchone()] ))
+		'''
+		# Get user and encypted pass from DB, convert to dict of str types
+		self.dbc.execute("SELECT NAME,PASS FROM BACKUP_USER")
+		raw_creds = dict(zip( ['name','passwd'], [str(i) for i in self.dbc.fetchone()] ))
+		
+		# Decrypt pass and return dict of creds
+		secret = m2secret.Secret()
+		secret.deserialize(raw_creds['passwd'])
+		return { 'name' : raw_creds['name'], 'passwd' : secret.decrypt(key) }
 	
-	# Decrypt pass and return dict of creds
-	secret = m2secret.Secret()
-	secret.deserialize(raw_creds['passwd'])
-	return { 'name' : raw_creds['name'], 'passwd' : secret.decrypt(key) }
-
-def jobid():
-	'''
-jobid() - Create or clear job ID in DB
-Returns - int of job ID
-	'''
-	# Check for job on same date
-	dbc.execute("SELECT ID FROM JOBS WHERE DATE = ?", (date,))
-	row = dbc.fetchone()
-	
-	try:
-		if row:
-			# Overwrite job info if same date
-			dbc.execute('''UPDATE JOBS SET TIME = ?, COMPLETE = 0, 
-				ERRORS = 0, DEVICE_TOTAL = 0,	DEVICE_COMPLETE = 0, 
-				DEVICE_W_ERRORS = '0' WHERE ID = ?''',(int(time.time()),row[0]) )
-			db.commit()
-			jobid = row[0]
-		else:
-			# Create new job info
-			dbc.execute('''INSERT INTO JOBS ('DATE','TIME','ERRORS','COMPLETE',
-								'DEVICE_TOTAL','DEVICE_COMPLETE','DEVICE_W_ERRORS') 
-								VALUES (?,?,0,0,0,0,0)''', (date,int(time.time())) )
-			db.commit()
-			# Get new job ID
-			jobid = dbc.lastrowid
-	except:
-		e = sys.exc_info()[1]
-		log.error('Can\'t update DB: job id - %s' % e )
-		exit()
-	return jobid
-
-
-def dev_info(obj,dev_id):
-	'''
+	def dev_info(self,obj,dev_id):
+		'''
 dev_info(bigsuds_obj,dev_id) - gets bigip info 
  from device and inserts into DB
-	'''
-	dinfo = device_info(obj)
-	dinfo.update(active_image(obj))
-	dbc.execute('''UPDATE DEVICES SET VERSION = ?,
-				BUILD = ?,
-				MODEL = ?,
-				HOSTNAME = ?,
-				DEV_TYPE = ?,
-				SERIAL = ?,
-				ACT_PARTITION = ? 
-				WHERE ID = ?''', 
-				(dinfo['version'],
-				dinfo['build'],
-				dinfo['model'],
-				dinfo['hostname'],
-				dinfo['type'],
-				dinfo['serial'],
-				dinfo['partition'],
-				dev_id)
-			)
-	db.commit() 
-
-def get_certs(obj,dev_id):
-	'''
+		'''
+		dinfo = device_info(obj)
+		dinfo.update(active_image(obj))
+		self.dbc.execute('''UPDATE DEVICES SET VERSION = ?,
+					BUILD = ?,
+					MODEL = ?,
+					HOSTNAME = ?,
+					DEV_TYPE = ?,
+					SERIAL = ?,
+					ACT_PARTITION = ? 
+					WHERE ID = ?''', 
+					(dinfo['version'],
+					dinfo['build'],
+					dinfo['model'],
+					dinfo['hostname'],
+					dinfo['type'],
+					dinfo['serial'],
+					dinfo['partition'],
+					dev_id)
+				)
+		self.db.commit() 
+	
+	def get_certs(self,obj,dev_id):
+		'''
 get_certs(bigsuds_obj,dev_id) - gets cert info 
   from device and inserts into DB	
-	'''
-	ha_pair = obj.System.Failover.is_redundant()
-	standby = obj.System.Failover.get_failover_state()
-	# Is device stand alone or active device?
-	if not ha_pair or standby == 'FAILOVER_STATE_ACTIVE':
-		log.info('Device is standalone or active unit. Downloading cert info.')
+		'''
+		ha_pair = obj.System.Failover.is_redundant()
+		standby = obj.System.Failover.get_failover_state()
+		# Is device stand alone or active device?
+		if not ha_pair or standby == 'FAILOVER_STATE_ACTIVE':
+			log.info('Device is standalone or active unit. Downloading cert info.')
+			
+			# Get certs from device
+			certs = obj.Management.KeyCertificate.get_certificate_list("MANAGEMENT_MODE_DEFAULT")
+			
+			#Create list of certs for DB
+			certlist = []
+			for i in certs:
+				certlist.append(
+					(dev_id,
+					i['certificate']['cert_info']['id'], 
+					i['certificate']['issuer']['organization_name'],
+					i['certificate']['expiration_date'],
+					i['certificate']['serial_number'],
+					i['certificate']['bit_length'],
+					i['certificate']['subject']['country_name'],
+					i['certificate']['subject']['state_name'],
+					i['certificate']['subject']['locality_name'],
+					i['certificate']['subject']['organization_name'],
+					i['certificate']['subject']['division_name'],
+					i['certificate']['subject']['common_name'])
+				)
+			# Insert list into DB
+			self.dbc.executemany( '''INSERT INTO CERTS ('DEVICE',
+			'NAME','ISSUER','EXPIRE','SN','KEY','SUB_C',
+			'SUB_S','SUB_L','SUB_O','SUB_OU','SUB_CN') 
+			VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', certlist)
+			self.db.commit()
+		else:
+			log.info('Device is not standalone or active unit. Skipping cert info download.')
+	
+	def ucs_db(self,device_dict):
+		'''
+ucs_db(device_dict) - Put ucs file names into DB
+		'''
+		# Clear DB entries
+		self.dbc.execute("DELETE FROM ARCHIVE")
+		self.db.commit()
 		
-		# Get certs from device
-		certs = obj.Management.KeyCertificate.get_certificate_list("MANAGEMENT_MODE_DEFAULT")
+		file_list = []
+		for dev in device_dict:
+			# Get list of file from dir, match only ucs files, sort
+			ucslist = os.listdir('%s/devices/%s' % (sys.path[0],dev['name']))
+			ucslist = [i  for i in ucslist if '-backup.ucs' in i]
+			ucslist.sort()
+			
+			# add files to list
+			file_list += ([ (dev['id'],'%s/devices/%s/' % (sys.path[0],
+								dev['name']),ucs) for ucs in ucslist])
 		
-		#Create list of certs for DB
-		certlist = []
-		for i in certs:
-			certlist.append(
-				(dev_id,
-				i['certificate']['cert_info']['id'], 
-				i['certificate']['issuer']['organization_name'],
-				i['certificate']['expiration_date'],
-				i['certificate']['serial_number'],
-				i['certificate']['bit_length'],
-				i['certificate']['subject']['country_name'],
-				i['certificate']['subject']['state_name'],
-				i['certificate']['subject']['locality_name'],
-				i['certificate']['subject']['organization_name'],
-				i['certificate']['subject']['division_name'],
-				i['certificate']['subject']['common_name'])
-			)
-		# Insert list into DB
-		dbc.executemany( '''INSERT INTO CERTS ('DEVICE',
-		'NAME','ISSUER','EXPIRE','SN','KEY','SUB_C',
-		'SUB_S','SUB_L','SUB_O','SUB_OU','SUB_CN') 
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', certlist)
-		db.commit()
-	else:
-		log.info('Device is not standalone or active unit. Skipping cert info download.')
+		# insert file info into DB
+		self.dbc.executemany("INSERT INTO ARCHIVE ('DEVICE','DIR','FILE') VALUES (?,?,?);", file_list)
+		self.db.commit()
+	
+	
+	def clean_jobdb(self,num):
+		'''
+clean_logdb() - Deletes old job info from
+  BD as set by LOG_ARCHIVE_SIZE setting 
+		'''
+		self.dbc.execute('SELECT ID FROM JOBS')
+		jobs = [ idn[0] for idn in self.dbc.fetchall() ]
+		jobs.sort(reverse=True)
+		deljobs = jobs[ num: ]
+		self.dbc.executemany('DELETE FROM JOBS WHERE ID = ?', str(deljobs) )
+		self.db.commit()
+
 
 def clean_archive(num):
 	'''
@@ -194,29 +231,6 @@ clean_archive() - Deletes old UCS files as
 			log.info('Deleting file: %s' % ucsfile)
 			os.remove('%s/devices/%s' % (sys.path[0], ucsfile))
 
-def ucs_db(device_dict):
-	'''
-ucs_db(device_dict) - Put ucs file names into DB	
-	'''
-	# Clear DB entries
-	dbc.execute("DELETE FROM ARCHIVE")
-	db.commit()
-	
-	file_list = []
-	for dev in device_dict:
-		# Get list of file from dir, match only ucs files, sort
-		ucslist = os.listdir('%s/devices/%s' % (sys.path[0],dev['name']))
-		ucslist = [i  for i in ucslist if '-backup.ucs' in i]
-		ucslist.sort()
-		
-		# add files to list
-		file_list += ([ (dev['id'],'%s/devices/%s/' % (sys.path[0],
-							dev['name']),ucs) for ucs in ucslist])
-	
-	# insert file info into DB
-	dbc.executemany("INSERT INTO ARCHIVE ('DEVICE','DIR','FILE') VALUES (?,?,?);", file_list)
-	db.commit()
-
 def clean_logs(num):
 	'''
 clean_logs() - Deletes old log files as
@@ -230,32 +244,11 @@ clean_logs() - Deletes old log files as
 		log.info('Deleting log file: %s' % lfile)
 		os.remove('%s/log/%s' % (sys.path[0],lfile))
 
-def clean_jobdb(num):
-	'''
-clean_logdb() - Deletes old job info from
-  BD as set by LOG_ARCHIVE_SIZE setting 
-	'''
-	dbc.execute('SELECT ID FROM JOBS')
-	jobs = [ idn[0] for idn in dbc.fetchall() ]
-	jobs.sort(reverse=True)
-	deljobs = jobs[ num: ]
-	dbc.executemany('DELETE FROM JOBS WHERE ID = ?', str(deljobs) )
-	db.commit()
-
 #*************************************************************************
 # MAIN 
 #*************************************************************************
 def main():
-	# Global vars
-	global error, dev_errors, db, dbc, date
-	
-	# set global vars
 	date = time.strftime("%Y-%m-%d",time.localtime()) 
-	error = 0 
-	dev_errors = [] 
-	
-	# Local vars
-	dev_complete = 0
 	
 	# Open/overwrite new log file. Quit if permission denied.
 	try:
@@ -282,19 +275,23 @@ def main():
 	
 	dbc = db.cursor()
 	
-	# Log job in DB
-	job_id = jobid()
+	# Create job object
+	job = _JobFunctions(db,dbc,date)
+	
+	# Local vars
+	dev_complete = 0
+	job_id = job.job_id
 	
 	# Get credentials from DB
 	log.info('Retrieving credentials from DB.')
 	try:
 		with open(sys.path[0] + '/.keystore/backup.key','r') as psfile:
 			cryptokey =  psfile.readline().rstrip()
-		creds = getcreds(cryptokey)
+		creds = job.getcreds(cryptokey)
 	except:
 		e = sys.exc_info()[1]
 		log.critical('Can\'t get credentials from DB - %s. Exiting program!' % e)
-		add_error(job_id)
+		job.add_error()
 		exit()
 	
 	# Get backup settings from DB
@@ -312,7 +309,7 @@ def main():
 	except:
 		e = sys.exc_info()[1]
 		log.error('Can\'t update DB: clear certs - %s' % e )	
-		add_error(job_id)
+		job.add_error()
 	
 	# Write number of devices to log DB
 	num_devices = len(devices)
@@ -323,7 +320,7 @@ def main():
 	except:
 		e = sys.exc_info()[1]
 		log.error('Can\'t update DB: num_devices - %s' % e )	
-		add_error(job_id)
+		job.add_error()
 		exit()
 	del num_devices
 	
@@ -337,7 +334,7 @@ def main():
 			# If error is not from existing file errno 17
 			if e.errno != 17: 
 				log.error('Cannot create device archive folder - %s. Skipping to next device' % e )
-				add_error(job_id,str(dev['id']))
+				job.add_error(str(dev['id']))
 				continue
 		else:
 			log.info('Created device directory %s/devices/%s' % (sys.path[0],dev['name']))
@@ -350,11 +347,11 @@ def main():
 		
 		# Get device info
 		try:
-			dev_info(b,dev['id'])
+			job.dev_info(b,dev['id'])
 		except:
 			e = sys.exc_info()[1]
 			log.error('%s' % e)
-			add_error(job_id,str(dev['id']) )
+			job.add_error(str(dev['id']) )
 			continue
 		
 		# Get CID from device
@@ -363,7 +360,7 @@ def main():
 		except:
 			e = sys.exc_info()[1]
 			log.error('%s' % e)
-			add_error(job_id,str(dev['id']) )
+			job.add_error(str(dev['id']) )
 			continue
 		
 		# Compare old cid time to new cid time
@@ -386,16 +383,16 @@ def main():
 			except:
 				e = sys.exc_info()[1]
 				log.error('%s' % e)
-				add_error(job_id,str(dev['id']) )
+				job.add_error(str(dev['id']) )
 				continue
 		
 		# Get cert info 
 		try:
-			get_certs(b,dev['id'])
+			job.get_certs(b,dev['id'])
 		except:
 			e = sys.exc_info()[1]
 			log.error('%s' % e )
-			add_error(job_id,str(dev['id']))
+			job.add_error(str(dev['id']))
 			continue
 		
 		# Update DB with new complete count
@@ -406,7 +403,7 @@ def main():
 		except:
 			e = sys.exc_info()[1]
 			log.error('Can\'t update DB: dev_complete - %s' % e )
-			add_error(job_id,str(dev['id']))
+			job.add_error(str(dev['id']))
 	
 	# Clear creds & key
 	creds = None
@@ -419,13 +416,13 @@ def main():
 	clean_archive(backup_config['UCS_ARCHIVE_SIZE'])
 	
 	# Insert files names into DB
-	ucs_db(devices)
+	job.ucs_db(devices)
 	
 	# Keep only the number of log files specified by LOG_ARCHIVE_SIZE and write deletion to log
 	clean_logs(backup_config['LOG_ARCHIVE_SIZE'])
 	
 	# Clean jobs logs from DB
-	clean_jobdb(backup_config['LOG_ARCHIVE_SIZE'])
+	job.clean_jobdb(backup_config['LOG_ARCHIVE_SIZE'])
 	
 	log.info('Cleanup finished.')
 	
@@ -440,9 +437,5 @@ def main():
 	# All done, close log file
 	log.info('Backup job completed.')
 	
-	# Clear global vars
-	error = None
-	dev_errors = None
-	db = None 
-	dbc = None
-	date = None
+	# Clear objects
+	del job,date,dbc,db
