@@ -22,25 +22,21 @@
 import os, sys, time
 import sqlite3 as sq
 import bigsuds
+import logging as log
 
 # Add fbackup lib folder to sys.path 
 sys.path.append('%s/lib' % sys.path[0])
 # Import F5 backup libs
 import ecommon
 import m2secret
-from ecommon import *
 from econtrol import *
 
 # Define global vars
-date = None 
 error = None
 dev_errors = None
 db = None 
 dbc = None 
-
-# If '-debug' is in args
-# ----------------------------------------------------need to figure out something for debug as a daemon
-ecommon.debug = 1 if next((arg for arg in sys.argv if '-debug' in arg),None) else 0
+date = None
 
 
 ############################################
@@ -62,14 +58,17 @@ def add_error(jobid, device = ''):
 		db.commit()
 	except:
 		e = sys.exc_info()[1]
-		logwr('Error: Can\'t update DB: add_error - %s' % e )	
+		log.error('Can\'t update DB: add_error - %s' % e)
 
-############################################
-# getcreds(key) - Gets user credentials from DB 
-# args - key: encryption key used by m2secret 
-# Return - dict of creds
-############################################
+
+
+
 def getcreds(key):
+	'''
+getcreds(key) - Gets user credentials from DB 
+args - key: encryption key used by m2secret 
+Return - dict of creds
+	'''
 	# Get user and encypted pass from DB, convert to dict of str types
 	dbc.execute("SELECT NAME,PASS FROM BACKUP_USER")
 	raw_creds = dict(zip( ['name','passwd'], [str(i) for i in dbc.fetchone()] ))
@@ -106,7 +105,7 @@ Returns - int of job ID
 			jobid = dbc.lastrowid
 	except:
 		e = sys.exc_info()[1]
-		logwr('Error: Can\'t update DB: job id - %s' % e )	
+		log.error('Can\'t update DB: job id - %s' % e )
 		exit()
 	return jobid
 
@@ -146,7 +145,7 @@ get_certs(bigsuds_obj,dev_id) - gets cert info
 	standby = obj.System.Failover.get_failover_state()
 	# Is device stand alone or active device?
 	if not ha_pair or standby == 'FAILOVER_STATE_ACTIVE':
-		logwr('Device is standalone or active unit. Downloading cert info at %s.' % hmstime() )
+		log.info('Device is standalone or active unit. Downloading cert info.')
 		
 		# Get certs from device
 		certs = obj.Management.KeyCertificate.get_certificate_list("MANAGEMENT_MODE_DEFAULT")
@@ -175,7 +174,7 @@ get_certs(bigsuds_obj,dev_id) - gets cert info
 		VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', certlist)
 		db.commit()
 	else:
-		logwr('Device is not standalone or active unit. Skipping cert info download at %s.' % hmstime() )
+		log.info('Device is not standalone or active unit. Skipping cert info download.')
 
 def clean_archive(num):
 	'''
@@ -192,7 +191,7 @@ clean_archive() - Deletes old UCS files as
 		for ucs in ucslist[ num: ]:
 			# Delete files
 			ucsfile = '%s/%s' % (folder,ucs)
-			logwr('Deleting file at %s: %s' % (hmstime(),ucsfile))
+			log.info('Deleting file: %s' % ucsfile)
 			os.remove('%s/devices/%s' % (sys.path[0], ucsfile))
 
 def ucs_db(device_dict):
@@ -227,9 +226,9 @@ clean_logs() - Deletes old log files as
 	logs = os.listdir('%s/log/' % sys.path[0])
 	logs = [i  for i in logs if '-backup.log' in i]
 	logs.sort(reverse=True)
-	for log in logs[ num: ]:
-		logwr('Deleting log file at %s: %s' % (hmstime(),log))
-		os.remove('%s/log/%s' % (sys.path[0],log))
+	for lfile in logs[ num: ]:
+		log.info('Deleting log file: %s' % lfile)
+		os.remove('%s/log/%s' % (sys.path[0],lfile))
 
 def clean_jobdb(num):
 	'''
@@ -248,7 +247,7 @@ clean_logdb() - Deletes old job info from
 #*************************************************************************
 def main():
 	# Global vars
-	global date, error, dev_errors, db, dbc
+	global error, dev_errors, db, dbc, date
 	
 	# set global vars
 	date = time.strftime("%Y-%m-%d",time.localtime()) 
@@ -260,21 +259,25 @@ def main():
 	
 	# Open/overwrite new log file. Quit if permission denied.
 	try:
-		ecommon.logfile = open('%s/log/%s-backup.log' % (sys.path[0], date),'w',0)
+		log.basicConfig(filename='%s/log/%s-backup.log' % (sys.path[0], date),
+			level=log.INFO,
+			format='%(asctime)s %(levelname)s: %(message)s',
+			datefmt='%Y-%m-%d %H:%M:%S'
+		)
 	except:
 		e = sys.exc_info()[1]
-		print 'Error:', e,'\nCan\'t write to log file. Exiting program!'
+		print 'Error:', e,'Can\'t write to log file. Exiting program!'
 		exit()
 	
-	logwr('Starting backup job on %s at %s'% (date,hmstime()))
+	log.info('--------- Starting backup job.----------')
 	 
 	# Connect to DB
-	logwr('\nOpening database file.')
+	log.info('Opening database file.')
 	try:
 		db = sq.connect(sys.path[0] + '/db/main.db')
 	except:
 		e = sys.exc_info()[1]
-		logwr('Error: Can\'t open data base - %s \nExiting program!' % e)
+		log.critical('Can\'t open data base - %s.Exiting program!' % e)
 		exit()
 	
 	dbc = db.cursor()
@@ -283,13 +286,14 @@ def main():
 	job_id = jobid()
 	
 	# Get credentials from DB
-	logwr('\nRetrieving credentials from DB.')
+	log.info('Retrieving credentials from DB.')
 	try:
-		cryptokey = getpass(sys.path[0] + '/.keystore/backup.key')
+		with open(sys.path[0] + '/.keystore/backup.key','r') as psfile:
+			cryptokey =  psfile.readline().rstrip()
 		creds = getcreds(cryptokey)
 	except:
 		e = sys.exc_info()[1]
-		logwr('Error: Can\'t get credentials from DB - %s \nExiting program!' % e)
+		log.critical('Can\'t get credentials from DB - %s. Exiting program!' % e)
 		add_error(job_id)
 		exit()
 	
@@ -307,36 +311,36 @@ def main():
 		db.commit()
 	except:
 		e = sys.exc_info()[1]
-		logwr('Error: Can\'t update DB: clear certs - %s' % e )	
+		log.error('Can\'t update DB: clear certs - %s' % e )	
 		add_error(job_id)
 	
 	# Write number of devices to log DB
 	num_devices = len(devices)
-	logwr('\nThere are %d devices to backup.' % num_devices)
+	log.info('There are %d devices to backup.' % num_devices)
 	try:
 		dbc.execute('UPDATE JOBS SET DEVICE_TOTAL = ? WHERE ID = ?',(num_devices,job_id))
 		db.commit()
 	except:
 		e = sys.exc_info()[1]
-		logwr('Error: Can\'t update DB: num_devices - %s' % e )	
+		log.error('Can\'t update DB: num_devices - %s' % e )	
 		add_error(job_id)
 		exit()
 	del num_devices
 	
 	# Loop through devices
 	for dev in devices:
-		logwr('\nConnecting to %s at %s.' % (dev['name'],hmstime()))
+		log.info('Connecting to %s.' % dev['name'])
 		# Create device folder if it does not exist
 		try:
 			os.mkdir('%s/devices/%s' % (sys.path[0],dev['name']),0775)
 		except OSError, e:
 			# If error is not from existing file errno 17
 			if e.errno != 17: 
-				logwr('Error: Cannot create device archive folder - %s \nSkipping to next device' % e )
+				log.error('Cannot create device archive folder - %s. Skipping to next device' % e )
 				add_error(job_id,str(dev['id']))
 				continue
 		else:
-			logwr('Created device directory %s at %s.' % ('%s/devices/%s' % (sys.path[0],dev['name']),hmstime()))
+			log.info('Created device directory %s/devices/%s' % (sys.path[0],dev['name']))
 		
 		# Get IP for device or keep hostname if NULL
 		ip = dev['name'] if dev['ip'] == 'NULL' else dev['ip']
@@ -349,7 +353,7 @@ def main():
 			dev_info(b,dev['id'])
 		except:
 			e = sys.exc_info()[1]
-			logwr('Error: %s' % e)
+			log.error('%s' % e)
 			add_error(job_id,str(dev['id']) )
 			continue
 		
@@ -358,15 +362,15 @@ def main():
 			cid = int(b.Management.DBVariable.query(['Configsync.LocalConfigTime'])[0]['value'])
 		except:
 			e = sys.exc_info()[1]
-			logwr('Error: %s' % e)
+			log.error('%s' % e)
 			add_error(job_id,str(dev['id']) )
 			continue
 		
 		# Compare old cid time to new cid time
 		if cid == dev['cid']:
-			logwr('CID times match for %s at %s. Configuration unchanged. Skipping download.' % (dev['name'],hmstime()))
+			log.info('CID times match for %s. Configuration unchanged. Skipping download.' % dev['name'])
 		else:
-			logwr('CID times do not match. Old - %d, New - %d. Downloading backup file at %s.' % (dev['cid'],cid,hmstime())) 
+			log.info('CID times do not match. Old - %d, New - %d. Downloading backup file.' % (dev['cid'],cid)) 
 			# Make device create UCS file, Download UCS file, Disconnect session, Write new cid time to DB
 			try:
 				b.System.ConfigSync.save_configuration(filename = 'configbackup.ucs',save_flag = 'SAVE_FULL')
@@ -375,13 +379,13 @@ def main():
 					'%s/devices/%s/%s-%s-backup.ucs' % (sys.path[0], 
 					dev['name'],date,dev['name']) ,65535
 				)
-				logwr('Downloaded UCS file for %s - %d bytes.' % (dev['name'],dbytes))
-				db.execute("""UPDATE DEVICES SET CID_TIME = ?, 
-							LAST_DATE = ? WHERE ID = ?""", (cid,int(time.time()),dev['id']))
+				log.info('Downloaded UCS file for %s - %d bytes.' % (dev['name'],dbytes))
+				db.execute('''UPDATE DEVICES SET CID_TIME = ?, 
+							LAST_DATE = ? WHERE ID = ?''', (cid,int(time.time()),dev['id']))
 				db.commit()
 			except:
 				e = sys.exc_info()[1]
-				logwr('Error: %s' % e)
+				log.error('%s' % e)
 				add_error(job_id,str(dev['id']) )
 				continue
 		
@@ -390,7 +394,7 @@ def main():
 			get_certs(b,dev['id'])
 		except:
 			e = sys.exc_info()[1]
-			logwr('Error: %s' % e )
+			log.error('%s' % e )
 			add_error(job_id,str(dev['id']))
 			continue
 		
@@ -401,7 +405,7 @@ def main():
 			db.commit()
 		except:
 			e = sys.exc_info()[1]
-			logwr('Error: Can\'t update DB: dev_complete - %s' % e )
+			log.error('Can\'t update DB: dev_complete - %s' % e )
 			add_error(job_id,str(dev['id']))
 	
 	# Clear creds & key
@@ -409,7 +413,7 @@ def main():
 	cryptokey = None
 	
 	#  Add deletion note to log file
-	logwr('\nDeleting old files:')
+	log.info('Starting DB, log, UCS file cleanup.')
 	
 	# Keep only the number of UCS files specified by UCS_ARCHIVE_SIZE and write deletion to log
 	clean_archive(backup_config['UCS_ARCHIVE_SIZE'])
@@ -423,29 +427,22 @@ def main():
 	# Clean jobs logs from DB
 	clean_jobdb(backup_config['LOG_ARCHIVE_SIZE'])
 	
-	# Check number of errors. Print line if > 0
-	if error:
-		logwr('\nThere is %d error(s).' % error)
+	log.info('Cleanup finished.')
 	
 	# Mark job as complete in DB
 	db.execute('UPDATE JOBS SET COMPLETE = 1 WHERE ID = %d' % job_id)
 	db.commit()
 	
 	# Close DB connection
-	logwr('\nClosing DB connection at %s' % hmstime())
+	log.info('Closing DB connection.')
 	db.close()
 	
 	# All done, close log file
-	logwr('\nBackup job completed at %s.' % hmstime())
-	ecommon.logfile.close()
+	log.info('Backup job completed.')
 	
 	# Clear global vars
-	date = None 
 	error = None
 	dev_errors = None
 	db = None 
 	dbc = None
-
-# Start
-if __name__ == "__main__":
-	main()
+	date = None

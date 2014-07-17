@@ -5,9 +5,9 @@ from flask import Flask, jsonify, abort, request, make_response
 # Get program libs
 sys.path.append('%s/lib' % sys.path[0])
 import m2secret
-from ecommon import getpass
 
 app = Flask(__name__)
+
 
 ############################################################
 ### Error handling 
@@ -50,7 +50,8 @@ Health check for web service and f5backup daemon
 	'''
 	try:
 		# Check for f5backup daemon
-		pid = int(getpass('%s/pid/f5backup.pid' % sys.path[0]))
+		with open('%s/pid/f5backup.pid' % sys.path[0],'r') as psfile:
+			pid = int( psfile.readline().rstrip() )
 		os.kill(pid,0)
 		return jsonify( {'status' : 'ONLINE'} )
 	except:
@@ -72,7 +73,8 @@ Encryption function - encrypt string using key from file
 	
 	# Get encryption password or give 500 error
 	try:
-		cryptokey = getpass('%s/.keystore/backup.key' % sys.path[0])
+		with open('%s/.keystore/backup.key' % sys.path[0],'r') as psfile:
+			cryptokey = psfile.readline().rstrip()
 	except:
 		abort(500)
 	
