@@ -49,7 +49,7 @@ if ( $main_page ) {
 		$time = date('Y-m-d H:i:s',$row['TIME']);
 		$errors = $row['ERRORS'];
 		$complete = "No";
-		if ($row['COMPLETE'] = 1) {$complete = "Yes";};
+		if ($row['COMPLETE'] == 1) {$complete = "Yes";};
 		$device_w_errors = explode(' ', $row['DEVICE_W_ERRORS']);
 		$log_file = htmlspecialchars(file_get_contents("../log/$date-backup.log"));
 

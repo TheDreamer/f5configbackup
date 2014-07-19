@@ -22,7 +22,7 @@
 import os, sys, time
 import sqlite3 as sq
 import bigsuds
-import logging as log
+import logging
 
 # Add fbackup lib folder to sys.path 
 sys.path.append('%s/lib' % sys.path[0])
@@ -36,17 +36,18 @@ class _JobFunctions(object):
 This class contains all of the functions for the backup program 
 that need access to the shared objects.
 	'''
-	def __init__(self,v_db,v_dbc,v_date):
+	def __init__(self,v_log,v_db,v_dbc,v_date):
 		self.error = 0
 		self.dev_errors = []
+		self.log = v_log
 		self.db = v_db
 		self.dbc = v_dbc
 		self.date = v_date
-		self.job_id = self.jobid()
 
 	def jobid(self):
 		'''
 jobid() - Create or clear job ID in DB
+          and sets attr self.jobid
 Returns - int of job ID
 		'''
 		# Check for job on same date
@@ -69,9 +70,10 @@ Returns - int of job ID
 				self.db.commit()
 				# Get new job ID
 				jobid = self.dbc.lastrowid
+			self.job_id = jobid
 		except:
 			e = sys.exc_info()[1]
-			log.error('Can\'t update DB: job id - %s' % e )
+			self.log.error('Can\'t update DB: job id - %s' % e )
 			exit()
 		return jobid
 	
@@ -93,7 +95,7 @@ and inserts into DB.
 			self.db.commit()
 		except:
 			e = sys.exc_info()[1]
-			log.error('Can\'t update DB: add_error - %s' % e)
+			self.log.error('Can\'t update DB: add_error - %s' % e)
 	
 	def getcreds(self,key):
 		'''
@@ -145,7 +147,7 @@ get_certs(bigsuds_obj,dev_id) - gets cert info
 		standby = obj.System.Failover.get_failover_state()
 		# Is device stand alone or active device?
 		if not ha_pair or standby == 'FAILOVER_STATE_ACTIVE':
-			log.info('Device is standalone or active unit. Downloading cert info.')
+			self.log.info('Device is standalone or active unit. Downloading cert info.')
 			
 			# Get certs from device
 			certs = obj.Management.KeyCertificate.get_certificate_list("MANAGEMENT_MODE_DEFAULT")
@@ -174,7 +176,7 @@ get_certs(bigsuds_obj,dev_id) - gets cert info
 			VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', certlist)
 			self.db.commit()
 		else:
-			log.info('Device is not standalone or active unit. Skipping cert info download.')
+			self.log.info('Device is not standalone or active unit. Skipping cert info download.')
 	
 	def ucs_db(self,device_dict):
 		'''
@@ -196,7 +198,8 @@ ucs_db(device_dict) - Put ucs file names into DB
 								dev['name']),ucs) for ucs in ucslist])
 		
 		# insert file info into DB
-		self.dbc.executemany("INSERT INTO ARCHIVE ('DEVICE','DIR','FILE') VALUES (?,?,?);", file_list)
+		self.dbc.executemany('''INSERT INTO ARCHIVE ('DEVICE','DIR','FILE') 
+                            VALUES (?,?,?);''', file_list)
 		self.db.commit()
 	
 	
@@ -211,52 +214,56 @@ clean_logdb() - Deletes old job info from
 		deljobs = jobs[ num: ]
 		self.dbc.executemany('DELETE FROM JOBS WHERE ID = ?', str(deljobs) )
 		self.db.commit()
-
-
-def clean_archive(num):
-	'''
-clean_archive() - Deletes old UCS files as
-  set by UCS_ARCHIVE_SIZE setting	
-	'''
-	dev_folders = os.listdir(sys.path[0] + '/devices')
-	for folder in dev_folders:
-		# Get list of file from dir, match only ucs files, reverse sort
-		ucslist = os.listdir('%s/devices/%s' % (sys.path[0], folder))
-		ucslist = [i  for i in ucslist if '-backup.ucs' in i]
-		ucslist.sort(reverse=True)
-		# loop thought list from index of archive size onward
-		for ucs in ucslist[ num: ]:
-			# Delete files
-			ucsfile = '%s/%s' % (folder,ucs)
-			log.info('Deleting file: %s' % ucsfile)
-			os.remove('%s/devices/%s' % (sys.path[0], ucsfile))
-
-def clean_logs(num):
-	'''
-clean_logs() - Deletes old log files as
-  set by LOG_ARCHIVE_SIZE setting
-	'''
-	# Get list of files, match only log files, reverse sort
-	logs = os.listdir('%s/log/' % sys.path[0])
-	logs = [i  for i in logs if '-backup.log' in i]
-	logs.sort(reverse=True)
-	for lfile in logs[ num: ]:
-		log.info('Deleting log file: %s' % lfile)
-		os.remove('%s/log/%s' % (sys.path[0],lfile))
+	
+	def clean_archive(self,num):
+		'''
+	clean_archive() - Deletes old UCS files as
+	  set by UCS_ARCHIVE_SIZE setting	
+		'''
+		dev_folders = os.listdir(sys.path[0] + '/devices')
+		for folder in dev_folders:
+			# Get list of file from dir, match only ucs files, reverse sort
+			ucslist = os.listdir('%s/devices/%s' % (sys.path[0], folder))
+			ucslist = [i  for i in ucslist if '-backup.ucs' in i]
+			ucslist.sort(reverse=True)
+			# loop thought list from index of archive size onward
+				# Delete files
+			for ucs in ucslist[ num: ]:
+				ucsfile = '%s/%s' % (folder,ucs)
+				self.log.info('Deleting file: %s' % ucsfile)
+				os.remove('%s/devices/%s' % (sys.path[0], ucsfile))
+	
+	def clean_logs(self,num):
+		'''
+	clean_logs() - Deletes old log files as
+	  set by LOG_ARCHIVE_SIZE setting
+		'''
+		# Get list of files, match only log files, reverse sort
+		logs = os.listdir('%s/log/' % sys.path[0])
+		logs = [i  for i in logs if '-backup.log' in i]
+		logs.sort(reverse=True)
+		for lfile in logs[ num: ]:
+			self.log.info('Deleting log file: %s' % lfile)
+			os.remove('%s/log/%s' % (sys.path[0],lfile))
 
 #*************************************************************************
 # MAIN 
 #*************************************************************************
 def main():
-	date = time.strftime("%Y-%m-%d",time.localtime()) 
+	date = time.strftime('%Y-%m-%d',time.localtime()) 
 	
-	# Open/overwrite new log file. Quit if permission denied.
+	# Open new log file. Quit if permission denied.
 	try:
-		log.basicConfig(filename='%s/log/%s-backup.log' % (sys.path[0], date),
-			level=log.INFO,
-			format='%(asctime)s %(levelname)s: %(message)s',
-			datefmt='%Y-%m-%d %H:%M:%S'
-		)
+		log = logging.getLogger()
+		log.setLevel(logging.INFO)
+		fh = logging.FileHandler(
+					filename='%s/log/%s-backup.log' % (sys.path[0],date))
+		fh.setLevel(logging.INFO)
+		formatter = logging.Formatter(
+						fmt='%(asctime)s %(levelname)s: %(message)s',
+						datefmt='%Y-%m-%d %H:%M:%S')
+		fh.setFormatter(formatter)
+		log.addHandler(fh)
 	except:
 		e = sys.exc_info()[1]
 		print 'Error:', e,'Can\'t write to log file. Exiting program!'
@@ -276,11 +283,11 @@ def main():
 	dbc = db.cursor()
 	
 	# Create job object
-	job = _JobFunctions(db,dbc,date)
+	job = _JobFunctions(log,db,dbc,date)
 	
 	# Local vars
 	dev_complete = 0
-	job_id = job.job_id
+	job_id = job.jobid()
 	
 	# Get credentials from DB
 	log.info('Retrieving credentials from DB.')
@@ -413,13 +420,13 @@ def main():
 	log.info('Starting DB, log, UCS file cleanup.')
 	
 	# Keep only the number of UCS files specified by UCS_ARCHIVE_SIZE and write deletion to log
-	clean_archive(backup_config['UCS_ARCHIVE_SIZE'])
+	job.clean_archive(backup_config['UCS_ARCHIVE_SIZE'])
 	
 	# Insert files names into DB
 	job.ucs_db(devices)
 	
 	# Keep only the number of log files specified by LOG_ARCHIVE_SIZE and write deletion to log
-	clean_logs(backup_config['LOG_ARCHIVE_SIZE'])
+	job.clean_logs(backup_config['LOG_ARCHIVE_SIZE'])
 	
 	# Clean jobs logs from DB
 	job.clean_jobdb(backup_config['LOG_ARCHIVE_SIZE'])
@@ -438,4 +445,5 @@ def main():
 	log.info('Backup job completed.')
 	
 	# Clear objects
-	del job,date,dbc,db
+	log.removeHandler(fh)
+	del log,fh,job,date,dbc,db
