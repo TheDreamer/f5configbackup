@@ -49,7 +49,11 @@ class f5backup():
 			# Does minute time match DB time ?
 			if (tcheck == db_time):
 				# Run backup job
-				f5backup_lib.main()
+				# Catch errors 
+				try:
+					f5backup_lib.main()
+				except f5backup_lib.BackupError as e:
+					print e
 				
 				# wait 61 seconds after finishing to 
 				# ensure job does not run twice

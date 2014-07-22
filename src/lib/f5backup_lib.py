@@ -19,17 +19,19 @@
 ## Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #####################################################################################
 
-import os, sys, time
+import os, sys, time, logging
 import sqlite3 as sq
 import bigsuds
-import logging
 
-# Add fbackup lib folder to sys.path 
+# Add f5backup lib folder to sys.path 
 sys.path.append('%s/lib' % sys.path[0])
 # Import F5 backup libs
 import m2secret
 from econtrol import *
 
+class BackupError(Exception):
+	'''Base class for fatal errors in backup program'''
+	pass
 
 class _JobFunctions(object):
 	'''
@@ -74,7 +76,6 @@ Returns - int of job ID
 		except:
 			e = sys.exc_info()[1]
 			self.log.error('Can\'t update DB: job id - %s' % e )
-			exit()
 		return jobid
 	
 	def add_error(self,device = ''):
@@ -266,8 +267,7 @@ def main():
 		log.addHandler(fh)
 	except:
 		e = sys.exc_info()[1]
-		print 'Error:', e,'Can\'t write to log file. Exiting program!'
-		exit()
+		raise BackupError('Unable to open logfile %s' % e)
 	
 	log.info('--------- Starting backup job.----------')
 	 
@@ -277,8 +277,10 @@ def main():
 		db = sq.connect(sys.path[0] + '/db/main.db')
 	except:
 		e = sys.exc_info()[1]
-		log.critical('Can\'t open data base - %s.Exiting program!' % e)
-		exit()
+		log.critical('Can\'t open database - %s' % e)
+		log.removeHandler(fh)
+		del log,fh,date
+		raise BackupError('Can\'t open database - %s' % e)
 	
 	dbc = db.cursor()
 	
@@ -297,9 +299,11 @@ def main():
 		creds = job.getcreds(cryptokey)
 	except:
 		e = sys.exc_info()[1]
-		log.critical('Can\'t get credentials from DB - %s. Exiting program!' % e)
+		log.critical('Can\'t get credentials from DB - %s' % e)
 		job.add_error()
-		exit()
+		log.removeHandler(fh)
+		del log,fh,job,date,dbc,db
+		raise BackupError('Can\'t get credentials from DB - %s' % e)
 	
 	# Get backup settings from DB
 	dbc.execute("SELECT NAME,VALUE FROM BACKUP_SETTINGS_INT")
@@ -328,7 +332,6 @@ def main():
 		e = sys.exc_info()[1]
 		log.error('Can\'t update DB: num_devices - %s' % e )	
 		job.add_error()
-		exit()
 	del num_devices
 	
 	# Loop through devices
