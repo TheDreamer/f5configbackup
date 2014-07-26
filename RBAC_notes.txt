@@ -1,0 +1,28 @@
+RBAC Notes
+
+Extend the DB schema
+ALTER TABLE USERS ADD COLUMN ROLE INT;
+
+INSERT INTO ROLES VALUES(1,'Administrator');
+INSERT INTO ROLES VALUES(2,'Device Admin');
+INSERT INTO ROLES VALUES(3,'Operator');
+INSERT INTO ROLES VALUES(4,'Guest');
+
+Make role array in the header and display user role
+
+Modify login script to retrieve user role and insert into session var
+
+Clean up of users page
+ Instead of using params off the settings page, create a dedicated user page
+ Create new file /opt/f5backup/ui/users.php
+  chown f5backup:apache /opt/f5backup/ui/users.php
+
+Create the role selection on the add user screen
+
+Create the role display on the all users screen
+
+Created new user delete file
+
+Added RBAC check to session.php - redirects to index on deny
+
+Added error logic to index.php to display access denied message

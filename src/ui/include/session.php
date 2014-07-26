@@ -18,5 +18,16 @@ if(!(isset( $_SESSION['active']))) {
 		$_SESSION['time'] = time();
 	};
 };
+// Check permissions for RBAC
+if ( isset($permissions) ) {
+	// Search permissions array for users level,
+	if ( ! array_key_exists($_SESSION['role'],array_fill_keys( $permissions, null)) ) {
+		// Redirect to index.php with error code if no match
+		$page = urlencode(strtok($_SERVER["REQUEST_URI"],'?'));
+		header("Location: /index.php?error=403&page=$page");
+		die;
+	};
+};
+
 date_default_timezone_set(@date_default_timezone_get());
 ?>

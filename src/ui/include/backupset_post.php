@@ -54,6 +54,7 @@ try {
 		$updates .= '"UCS Archive Size" ';
 	};
 
+	// Log archive size
 	if ($log != $_POST["log"]) {
 		if (! is_numeric($_POST["log"])) {throw new Exception('"Log Archive Size" must be a number!'); };
 		$sth = $dbh->prepare("UPDATE BACKUP_SETTINGS_INT SET VALUE = ? WHERE NAME = 'LOG_ARCHIVE_SIZE'");
@@ -63,7 +64,7 @@ try {
 		$updates .= '"Log Archive Size" ';
 	};
 
-	// 
+	// Backup time
 	$time_new = time_check($_POST["time_hr"],$_POST["time_min"]);
 	if ($time != $time_new){
 		$sth = $dbh->prepare("UPDATE BACKUP_SETTINGS_INT SET VALUE = ? WHERE NAME = 'BACKUP_TIME'");
@@ -73,7 +74,7 @@ try {
 		$updates .= '"Backup Time" ';
 	};
 
-
+	// Update backup user
 	if ($user != $_POST["user"]) {
 		$sth = $dbh->prepare("UPDATE BACKUP_USER SET NAME = ? WHERE ID = '0'");
 		$sth->bindParam(1,$_POST["user"]); 
@@ -82,6 +83,7 @@ try {
 		$updates .= '"Backup User Name" ';
 	};
 
+	// Update password
 	if ( $_POST["password"] != "nochange" ) {
 		// do passwords match ?
 		if ($_POST["password"] != $_POST["password2"]) {

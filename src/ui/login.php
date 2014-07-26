@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			$sth = $dbh->prepare("SELECT HASH FROM ADMIN WHERE ID = 1");
 			$sth->execute();
 			$db_hash = $sth->fetchColumn();
+			$role = 1;
 		} else {
 		// other user login
 			// is user valid ??
@@ -25,10 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			
 			if ( $user_valid ) {
 			// if user is valid get hash
-				$sth = $dbh->prepare("SELECT HASH FROM USERS WHERE NAME = ?");
+				$sth = $dbh->prepare("SELECT HASH,ROLE FROM USERS WHERE NAME = ?");
 				$sth->bindParam(1,$_POST["username"]); 
 				$sth->execute();
-				$db_hash = $sth->fetchColumn();
+				$row = $sth->fetch();
+				$db_hash = $row['HASH'];
+				$role = $row['ROLE'];
 			} else {
 			// otherwise null hash
 				$db_hash = "null";
@@ -55,6 +58,7 @@ if (isset($login) && $db_hash == $post_hash ) {
 	$_SESSION['user'] = $_POST["username"];
 	$_SESSION['time'] = time();
 	$_SESSION['timeout'] = $timeout;
+	$_SESSION['role'] = $role;
 	$location = "https://".$_SERVER['HTTP_HOST'].urldecode($_GET["page"]);
 	header("Location: $location");
 } else {

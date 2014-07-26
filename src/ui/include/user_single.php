@@ -4,7 +4,7 @@ $contents = '';
 if (is_numeric($_GET["id"])) {
 
 	// Get user from DB
-	$sth = $dbh->prepare("SELECT ID,NAME,ADDED_BY,DATE_ADDED FROM USERS WHERE ID = ?");
+	$sth = $dbh->prepare("SELECT ID,NAME,ADDED_BY,DATE_ADDED,ROLE FROM USERS WHERE ID = ?");
 	$sth->bindParam(1,$_GET["id"]); 
 	$sth->execute();
 	$row = $sth->fetch();
@@ -13,79 +13,101 @@ if (is_numeric($_GET["id"])) {
 	$name = $row['NAME'];
 	$created_by = $row['ADDED_BY'];
 	$date_added = date('Y-m-d H:i:s',$row['DATE_ADDED']);
+	$roleselect = roleselect($rolearray,$row['ROLE']);
 
 	// Update post processing
-	if ($_SERVER['REQUEST_METHOD'] == "POST") {
-
-		// Is this an update and has password been updated ?
-		if ( $_POST["change"] == "Update" && $_POST["password"] != "nochange" ) {
-			// Password validation and hash creation
-			$hash = password($_POST["password"],$_POST["password2"]);
-			if ( isset($PASS_ERR) ) {
-				$error = "<p class=\"error\">Error: $PASS_ERR</p>";
-			} else {
+	if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Update") {
+		$dbh->beginTransaction();
+		$post = 0;
+		$post_message = '';
+		try{
+			// Has password been updated ?
+			if ( $_POST["password"] != "nochange" ) {
+				// Password validation and hash creation
+				$hash = password_func($_POST["password"],$_POST["password2"]);
 				// Write hash to DB
 				$sth = $dbh->prepare("UPDATE USERS SET HASH = ? WHERE ID = $id");
 				$sth->bindParam(1,$hash); 
 				$sth->execute();
-				$post = "<p>User profile $name has been updated.</p>";
+				$post_message .= '"Password" ';
+				$post ++;
 			};
-		};
-		
-		// Are we deleting the user
-		if ( $_POST["change"] == "Delete" ) {
 
-			switch ( $_POST["confirm"] ) {
-				case "Yes" :
-					// Yes, delete the user from DB
-					$sth = $dbh->prepare("DELETE FROM USERS WHERE ID = $id");
-					$sth->execute();
-					$post = "<p>User $name has been deleted.</p>";
-					break;
-				case "No" :
-					$contents = "<p>User $name was not deleted.</p>";
-					break;
-				default:
-					$post = <<<EOD
-	<p>Are you sure you want to delete user $name ?</p>
-	<form action="settings.php?page=users&id=$id" method="post">
-	<input type="hidden" name="change" value="Delete">
-	<input type="submit" name="confirm" value="Yes">
-	<input type="submit" name="confirm" value="No">
-	</form>
-EOD;
+			// Has role been updated ?
+			if (! is_numeric($_POST["role"]) || ! array_key_exists($_POST["role"],$rolearray) ) {
+				throw new Exception('Invalid role ID'); 
 			};
-		};		
+			if ($row['ROLE'] != $_POST["role"]) {
+					$sth = $dbh->prepare("UPDATE USERS SET ROLE = ? WHERE ID = $id");
+					$sth->bindParam(1,$_POST["role"]); 
+					$sth->execute();
+					$post_message .= '"User Role" ';
+					$post ++;
+					
+					// Set new role for page refresh
+					$roleselect = roleselect($rolearray,$_POST["role"]);
+			};
+
+			// Was anything updated -- Do something about errors
+			if ( $post > 0 ) { 
+				$post_message = "<p>The following items have been updated: $post_message</p>"; 
+			} else {
+				$post_message = "<p>No settings where updated.</p>";
+			};
+
+			// If all is well commit the trans
+			$dbh->commit();
+		} catch (Exception $e) {
+			$dbh->rollBack();
+			$post_message = $e->getMessage();
+			$post_message = "<p class=\"error\"><strong>Error:</strong> $post_message </p>\n";
+			$post = 1;
+		};
+	
 	};
 	
 	
 	// Page body
-	$title = "<a href=\"settings.php?page=users\">Users</a> > $name";
-	if ( isset($post) ) { 
-		$contents .= $post;
-	} else {
-		if ( isset($error) ) {$contents .= $error;}; // did an error occur ?
-		
-		// User info
-		$contents .= <<<EOD
-	<form action="settings.php?page=users&id=$id" method="post">
+	$title = "<a href=\"users.php\">Users</a> > $name";
+	if ( isset($post) && $post > 0 ) { 
+		$contents .= $post_message;
+	} ;
+	if ( isset($error) ) {$contents .= $error;}; // did an error occur ?
+	
+	// User info
+	$contents .= <<<EOD
+	<form action="users.php?page=user&id=$id" method="post">
 	<table class="pagelet_table">
-		<tr class="pglt_tb_hdr"><td>Created By</td><td>Date Created</td></tr>
-		<tr class="odd"><td>$created_by</td><td>$date_added</td></tr>
-		<tr class="even"><td>Change Password</td>
+		<tr class="pglt_tb_hdr">
+			<td>Created By</td>
+			<td>Date Created</td>
+		</tr>
+		<tr class="odd">
+			<td>$created_by</td>
+			<td>$date_added</td>
+		</tr>
+		<tr class="even">
+			<td>Change Password</td>
 			<td><input type="password" name="password" class="input" maxlength="30" value="nochange"></td>
 		</tr>
-		<tr class="odd"><td>Confirm Password</td>
+		<tr class="odd">
+			<td>Confirm Password</td>
 			<td><input type="password" name="password2" class="input" maxlength="30" value="nochange"></td>
+		</tr>
+		<tr class="even">
+			<td>Role</td>
+			<td>
+				<select name="role">
+					$roleselect
+				</select>
+			</td>
 		</tr>
 	</table>
 	<input type="submit" name="change" value="Update">
-	<input type="submit" name="change" value="Delete">
 	</form>
 EOD;
-	};
 } else {
 // Error message if id is not number
-	$contents .= "<p><strong>Error:</strong> \"$ID\" is not a valid input</p>\n";
+	$contents .= "<p class=\"error\"><strong>Error:</strong> \"$ID\" is not a valid input</p>\n";
 };
-?>	
+?>

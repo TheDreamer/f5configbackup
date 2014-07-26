@@ -22,6 +22,13 @@ function webcheck () {
 return '<img style="vertical-align: middle;" src="/images/green_button.png"> Status: ONLINE';
   
 };
+
+// Make array of role names from DB
+$sth = $dbh->query("SELECT ID,NAME FROM ROLES ORDER BY ID");
+$sth->execute();
+foreach ($sth->fetchAll() as $role) {
+	$rolearray[$role['ID']] = $role['NAME'];
+};
 ?>
 
 <html>
@@ -37,6 +44,7 @@ return '<img style="vertical-align: middle;" src="/images/green_button.png"> Sta
 		<div id="logout"><a href="/logout.php">Log out</a></div>
 		<div id="status"><a href="/status.php"><?= webcheck()?></a></div>
 		<div id="user">Username: <?= $_SESSION['user'] ?></div>
+		<div id="role">User Role: <?= $rolearray[$_SESSION['role']] ?></div>
 		<div id="ip">User IP: <?= $_SERVER['REMOTE_ADDR'] ?></div>
 		<div id="date">Date: <?= date('Y-m-d',time()) ?></div>
 		<div id="time">Time: <?= date('H:i',time()) ?></div>

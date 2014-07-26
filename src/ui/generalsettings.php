@@ -1,4 +1,25 @@
 <?php
+/* RBAC permissions
+Add the role ID to the permissions array for the required
+level to restrict access. Remove the permissions array to 
+allow all. 
+
+$permissions = array(1,2,3);
+
+1 - Administrator
+2 - Device Admin
+3 - Operator
+4 - Guest
+*/
+$permissions = array(1);
+
+include("include/session.php");
+include("include/dbconnect.php");
+
+// include common content
+include("include/header.php");
+include("include/menu.php");
+
 // Get settings from DB
 $dbh->beginTransaction();
 
@@ -50,31 +71,41 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 	$dbh->commit();
 };
 
-// Page Body
 $contents = '';
 if ( $post > 0 ) { $contents .= "<p>The following items have been updated: $updates</p>"; };
 if ($_SERVER['REQUEST_METHOD'] == "POST" && $post == 0) {
 	$contents .= "<p>No settings where updated</p>";
 };
+$contents .= <<<EOD
+	<form action="generalsettings.php" method="post">
+	<table class="pagelet_table">
+		<tr class="pglt_tb_hdr">
+			<td>Setting</td>
+			<td>Value</td>
+		</tr>
+		<tr class="odd">
+			<td>Timeout</td>
+			<td>
+				<input type="text" name="timeout" size="10" maxlength="5" value="$timeout">
+			</td>
+		</tr>
+		<tr class="even">
+			<td>Login Banner</td>
+			<td>
+				<textarea cols="35" rows="10" name="motd">$motd</textarea>
+			</td>
+		</tr>
+	</table>
+	<input type="submit" name="submit" value="Update">
+	</form>
+EOD;
+// Page HTML
+?>
+	<div id="pagelet_title">
+		<a href="settings.php">Settings</a> > General Settings
+	</div>
+<?
 
-$contents .= "\t<form action=\"settings.php?page=general\" method=\"post\">";
-$contents .= "\t<table class=\"pagelet_table\">\n";
-$contents .= "\t\t<tr class=\"pglt_tb_hdr\"><td>Setting</td><td>Value</td></tr>\n";
-
-// Timeout
-$contents .= "\t\t<tr class=\"odd\"><td>Timeout</td><td>";
-$contents .= "<input type=\"text\" name=\"timeout\" size=\"10\" maxlength=\"5\" value=\"$timeout\">";
-$contents .= "</td></tr>\n";
-
-//Motd
-$contents .= "\t\t<tr class=\"even\"><td>Login Banner</td><td>";
-$contents .= "<textarea cols=\"35\" rows=\"10\" name=\"motd\">$motd</textarea>";
-$contents .= "</td></tr>\n";	
-
-
-$contents .= "\t</table>\n";
-$contents .= "\t<input type=\"submit\" name=\"submit\" value=\"Update\">\n";
-$contents .= "\t</form>\n";
-
-$title = "General Settings";
-?>	
+echo $contents."\n";
+include("include/footer.php");
+?>

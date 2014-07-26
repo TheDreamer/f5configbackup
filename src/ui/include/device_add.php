@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
 	};
 } else {
 	$contents = <<<EOD
-		<form action="devices.php?page=Add" method="post">	
+		<form action="devicemod.php?page=Add" method="post">
 		<table class="pagelet_table">
 			<tr class="pglt_tb_hdr"><td colspan="2">Add New Device</td></tr>
 			<tr class="odd">

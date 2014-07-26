@@ -18,7 +18,7 @@ if (is_numeric($ID)) {
 	if ($row['CID_TIME'] > 0) {$cid = date('Y-m-d H:i:s',$row['CID_TIME']); };
 	$date_added = date('Y-m-d H:i:s',$row['DATE_ADDED']);
 	if ($row['LAST_DATE'] > 0) {$last_date = date('Y-m-d H:i:s',$row['LAST_DATE']); };
-	if ($ip == "NULL") {$ip = "N/A";}; // set IP to N/A for devices w/o IPs
+	if ($ip == "NULL") {$ip = "DNS";}; // set IP to DNS for devices w/o IPs
 	$ver = $row['VERSION'];
 	$build = $row['BUILD'];
 	$model = $row['MODEL'];

@@ -1,4 +1,18 @@
 <?php
+/* RBAC permissions
+Add the role ID to the permissions array for the required
+level to restrict access. Remove the permissions array to 
+allow all. 
+
+$permissions = array(1,2,3);
+
+1 - Administrator
+2 - Device Admin
+3 - Operator
+4 - Guest
+*/
+$permissions = array(1);
+
 include("include/session.php");
 include("include/dbconnect.php");
 
@@ -26,7 +40,7 @@ $time_hr =  ($setarray['BACKUP_TIME'] - $time_min)/60;
 $sth = $dbh->prepare("SELECT NAME FROM BACKUP_USER WHERE ID = 0");
 $sth->execute();
 $user = $sth->fetchColumn();
-	$message = '';
+$message = '';
 
 
 // Is this a POST ?

@@ -55,6 +55,12 @@ div#status {
 }
 div#user {
 	position: absolute;
+	top: 70px;
+	left: 8px;
+	font-size: 12px;
+}
+div#role {
+	position: absolute;
 	top: 85px;
 	left: 8px;
 	font-size: 12px;

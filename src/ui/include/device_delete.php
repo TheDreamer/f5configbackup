@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 	if ($_POST["confirm"] == "Cancel") {
 		$location = "https://".$_SERVER['HTTP_HOST']."/devices.php";
 		header("Location: $location");
-		die();		
+		die();
 	} else {
 		// If not then loop though IDs
 		$contents .= "\t<p>Devices have been removed. </p>\n\t<ul>\n";
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				//Delete from DB
 				$sth = $dbh->prepare("DELETE FROM DEVICES WHERE ID = ?");
 				$sth->bindValue(1,$i); 
-				$sth->execute();			
+				$sth->execute();
 			
 				// Add to list on page
 				$dev = $devarray[$i];
@@ -39,9 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 	// Check if any devices are selected
 	if (isset($_GET["id"])) {
 		$inputs = '';
-		$contents .= "\t<p>Are you sure you want to delete the following devices ?</p>\n\t<ul>\n";
-			// Loop though array of params
-			foreach ($_GET["id"] as $i) {
+		$contents .= <<<EOD
+		<p>Are you sure you want to delete the following devices ?</p>
+		<ul>
+EOD;
+		// Loop though array of params
+		foreach ($_GET["id"] as $i) {
 			if (is_numeric($i)) {
 				$dev = $devarray[$i];
 				$contents .= "\t\t<li>$dev\n";
@@ -49,10 +52,14 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 				$inputs .= "\t\t<input type=\"hidden\" name=\"id[]\" value=\"$i\">\n";
 			};
 		};
-		$contents .= "\t</ul>\n\t<form action=\"devices.php?page=Delete\" method=\"post\">\n";
-		$contents .= $inputs;	
-		$contents .= "\t<input type=\"submit\" name=\"confirm\" value=\"Yes\">\n";
-		$contents .= "\t<input type=\"submit\" name=\"confirm\" value=\"Cancel\">\n\t</form>\n";
+		$contents .= <<<EOD
+		</ul>
+		<form action="devicemod.php?page=Delete" method="post">
+$inputs
+		<input type="submit" name="confirm" value="Yes">
+		<input type="submit" name="confirm" value="Cancel">
+		</form>
+EOD;
 	} else {
 	// If not then display error message
 		$contents .= "<p>No devices selected.</p>";

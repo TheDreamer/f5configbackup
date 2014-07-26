@@ -1,4 +1,17 @@
 <?php
+/* RBAC permissions
+Add the role ID to the permissions array for the required
+level to restrict access. Remove the permissions array to 
+allow all. 
+
+$permissions = array(1,2,3);
+
+1 - Administrator
+2 - Device Admin
+3 - Operator
+4 - Guest
+*/
+$permissions = array(1,2,3);
 
 include("include/session.php");
 include("include/dbconnect.php");
@@ -26,7 +39,7 @@ if ( isset($_GET["id"]) && is_numeric($_GET["id"]) ) {
 			header("HTTP/1.0 404 Not Found");
 			echo <<<EOD
 	<h1>File not found.</h1>
-	<p>Can't find file $file.</p>\n		
+	<p>Can't find file $file.</p>\n
 EOD;
 		};
 } else {
