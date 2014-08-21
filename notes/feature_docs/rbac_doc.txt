@@ -1,0 +1,67 @@
+RBAC Documentation 
+
+1) Introduction -
+This document covers the Role Based Access Control feature for the Config Backup for F5 
+program introduced in version 3.1. It gives a very high level overview of the major components
+of the feature and slightly more detailed description. It won't explain the whole process flow
+of each component but is rather intended as an aid to give the big picture and will help the 
+reader be better able to understand the logic from code comments.
+
+2) High Level Overview
+RBAC consists of the following components -
+
+   2.1) UI DB tables - The UI DB contains several tables that are used for RBAC.
+   
+   2.2) Login page - The login page is responsible for pulling the user/groups role ID and 
+      assign inserting it into the user's session variable array.
+      
+   2.3) Role array - The role array goes at the top of every page that need RBAC. Id contains
+      the IDs for any group that is allowed access to the page.
+   
+   2.4) Session include file - The session include file has a section that is responsible for
+      the enforcement of RBAC based upon the groups contained in the role array.
+   
+   2.5) Default page - Provides the access denied message to the user.
+   
+   2.6) User/Auth group web UI pages - These pages allow the assignment of roles to local users
+      or auth groups.
+   
+3) Detailed Description   
+   
+   3.1) UI DB tables - 
+      The UI DB contains a table "ROLES" that contains the ID and name for each role. The role 
+      IDs is an integer. This table is only used to provide names for the header and user/group 
+      role assignment but does not is not used in the enforcement of role permissions. The 
+      local user table "USERS" and the AD auth group table "AUTHGROUPS" contain a column for 
+      the role ID assignment of the user/group.
+      
+   
+   3.2) Login page - 
+      The login page was extended to assign roles to the user and insert the role variable to
+      session array. For local authentication, the page will do a DB query for the users password
+      hash and role. For AD auth the login page will get the role once the role from the 
+      user's auth group that matches it's AD memberOf group. Once the the password has been 
+      authenticated it will assign the role ID to the user's session array role parameter.
+      
+   3.3) Role array - 
+      The role array is placed at the top of any page that needs RBAC restrictions. The role 
+      array contains the role ID integers for permitted roles. If the page has no role 
+      restrictions then it is not needed.
+   
+   3.4) Session include file - 
+      The session was extended to handle the enforcement of RBAC. If the role array is present 
+      in the page that it was included with then it look to see if the role ID of the user from 
+      the session array is in the role array. If so then it allows the user to continue. If not
+      then it forces a redirect to the index page with error params set in the URI and then
+      does a die to stop any other code from being executed. 
+   
+   3.5) Index page -
+      The default index page was extended to display access denied messages after an session 
+      file redirect. The session redirect will include the page that the user was denied access
+      to. The error message from the index page will tell the user that page.
+   
+   3.6) User/Auth group web UI pages -       
+      These pages were extended to include the role in the user/auth group creation and 
+      modification. The pages contain an function to build the role dropdown box where the 
+      text role is display but the role ID integer is the actual POST value that gets inserted
+      into the DB.

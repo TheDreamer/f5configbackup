@@ -63,7 +63,7 @@ $contents .= <<<EOD
 		</tr>
 	</table>
 	<input type="submit" name="change" value="Update">
-	</form>
+	</form>\n
 EOD;
 
 
@@ -72,8 +72,11 @@ EOD;
 	<div id="pagelet_title">
 		<a href="settings.php">Settings</a> > Admin Password
 	</div>
+	<div id="pagelet_body">
 <?
 
-echo $contents."\n";
+echo $contents;
+
+echo "</div>";
 include("include/footer.php");
 ?>

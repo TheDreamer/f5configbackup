@@ -5,47 +5,115 @@ include("include/functions.php");
 
 // login post
 if ($_SERVER['REQUEST_METHOD'] == "POST") {
-	if ( bad_chars($_POST["username"]) || bad_chars($_POST["password"]) ) {
-	// If any bad chars in post contents dont allow DB lookup
-		$error = "Input will not accept those special characters!";
-	} else {
-		// admin login
-		if ($_POST["username"] == "admin") {
-			$sth = $dbh->prepare("SELECT HASH FROM ADMIN WHERE ID = 1");
-			$sth->execute();
-			$db_hash = $sth->fetchColumn();
-			$role = 1;
-		} else {
-		// other user login
-			// is user valid ??
-			$sth = $dbh->prepare("SELECT count(HASH) FROM USERS WHERE NAME = ?");
-			$sth->bindParam(1,$_POST["username"]); 
-			$sth->execute();
-			$user_valid = $sth->fetchColumn();
-			$sth = null;
-			
-			if ( $user_valid ) {
-			// if user is valid get hash
-				$sth = $dbh->prepare("SELECT HASH,ROLE FROM USERS WHERE NAME = ?");
-				$sth->bindParam(1,$_POST["username"]); 
-				$sth->execute();
-				$row = $sth->fetch();
-				$db_hash = $row['HASH'];
-				$role = $row['ROLE'];
-			} else {
-			// otherwise null hash
-				$db_hash = "null";
-			};
-		};
+	// admin login
+	if ( strtolower($_POST["username"]) == "admin" ) {
+		// Connect to DB
+		$sth = $dbh->prepare("SELECT HASH FROM ADMIN WHERE ID = 1");
+		$sth->execute();
+		$db_hash = $sth->fetchColumn();
+
 		// Hashed input password
 		$post_hash = crypt($_POST["password"], $db_hash);
-		$login = 1;
+ 
+		// Is this a valid login?
+		if ($db_hash == $post_hash) {
+			$login = 1;
+			$role = 1;
+		} else {
+			$error = "Bad username or password.";
+		};
+
+	} else {
+	// other user login
+		// What auth mode is set ?
+		$sth = $dbh->prepare("SELECT MODE FROM AUTH");
+		$sth->execute();
+		$mode = $sth->fetchColumn();
+
+		switch ($mode) {
+			case "ad":
+			// AD auth mode
+				// Make ad call to API
+				require_once '/opt/f5backup/ui/include/PestJSON.php';
+				$data = array('user' => $_POST["username"],
+								'passwd' => $_POST["password"] );
+				$pest = new PestJSON('http://127.0.0.1:5380');
+				$auth = $pest->post('/api/v1.0/adauth/authenticate/', $data);
+				
+				// Valid login
+				if ( $auth['result'] == "True" ) {
+					// Get auth groups
+					$sth = $dbh->query("SELECT STRING,ROLE FROM AUTHGROUPS ORDER BY ORD");
+					$sth->execute();
+					$groups = $sth->fetchAll();
+
+					//lowercase memberOf array
+					$membership = array_map("strtolower",$auth['memberOf']);
+
+					//loop through list until match is found
+					foreach ($groups as $i) {
+						$string = strtolower($i['STRING']);
+						// If auth group is in user's group membership allow login
+						if ( preg_grep("/$string/",$membership) ) {
+							$login = 1;
+							$role = $i['ROLE'];
+							break;
+						};
+					};
+					
+					// If not in a group then give error
+					if ( ! isset($login) ) {$error = "Bad username or password.";};
+				} else {
+					$error = "Bad username or password.";
+				};
+	
+				break;
+			default:
+				// Connect to DB
+				try {
+					// If any bad chars in post contents dont allow DB lookup
+					if ( bad_chars($_POST["username"]) || bad_chars($_POST["password"]) ) {
+						throw new Exception("Input will not accept those special characters!");
+					};
+					
+					// is user valid ??
+					$sth = $dbh->prepare("SELECT count(HASH) FROM USERS WHERE NAME = ?");
+					$sth->bindParam(1,$_POST["username"]); 
+					$sth->execute();
+					$user_valid = $sth->fetchColumn();
+					$sth = null;
+					
+					if ( $user_valid ) {
+					// if user is valid get hash
+						$sth = $dbh->prepare("SELECT HASH,ROLE FROM USERS WHERE NAME = ?");
+						$sth->bindParam(1,$_POST["username"]); 
+						$sth->execute();
+						$row = $sth->fetch();
+						$db_hash = $row['HASH'];
+						$role = $row['ROLE'];
+					} else {
+					// otherwise null hash
+						$db_hash = "null";
+					};
+					// Hashed input password
+					$post_hash = crypt($_POST["password"], $db_hash);
+					
+					// Is this a valid login?
+					if ($db_hash == $post_hash) {
+						$login = 1;
+					} else {
+						$error = "Bad username or password.";
+					};
+					
+				} catch (Exception $e) {
+					$error = $e->getMessage();
+				};
+		};
 	};
 };
 
-// If user POST and not injecting and new hash eq hash from db	 
-if (isset($login) && $db_hash == $post_hash ) {
-
+// If user POST  
+if (isset($login) ) {
 	// Get timeout value from DB
 	$sth = $dbh->prepare("SELECT VALUE FROM SETTINGS_INT WHERE NAME = 'timeout'");
 	$sth->execute();
@@ -61,6 +129,7 @@ if (isset($login) && $db_hash == $post_hash ) {
 	$_SESSION['role'] = $role;
 	$location = "https://".$_SERVER['HTTP_HOST'].urldecode($_GET["page"]);
 	header("Location: $location");
+	die;
 } else {
 // Otherwise give them the login page
 	// Get page that send to login and add as param of form action url
@@ -69,15 +138,12 @@ if (isset($login) && $db_hash == $post_hash ) {
 	  $URL="?page=".urlencode($_GET["page"]);
 	};
 
+	
 	// Get MOTD from DB
 	$sth = $dbh->prepare("SELECT MOTD FROM MOTD WHERE ID = 1");
 	$sth->execute();
 	$motd = $sth->fetchColumn();
-	
-	// Display error if POST and error has not been previously  
-	if ( isset($login) && ! isset($error) ) {
-		$error = "Bad username or password.";
-	};
+
 
 ?>
 <html>
@@ -93,20 +159,19 @@ if (isset($login) && $db_hash == $post_hash ) {
 	<div id="body">
 		<div id="form">
 			<form action="login.php<?=$URL?>" method="post">
-			<p>
-			Username<br />
+			<p>Username<br />
 			<input type="text" name="username" class="input" maxlength="20">
-			</p><p>
-			Password<br />
+			</p>
+			<p>Password<br />
 			<input type="password" name="password" class="input" maxlength="30">
 			</p>
 			<input type="submit" name="submit" value="Log In">
 			</form>
-	<? // Error messages
-	if (isset($error)) { 
-	?>
+<? // Error messages
+if (isset($error)) { 
+?>
 			<p id="error"><?= $error ?></p>
-	<?}?>
+<?}?>
 		</div>
 		<div id="message">
 			<div style="padding-left:10px"><pre><?= $motd ?></pre></div>

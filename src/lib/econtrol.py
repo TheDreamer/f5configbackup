@@ -36,36 +36,29 @@ def file_download(bigip_obj,src_file,dst_file,chunk_size,buff = 1048576):
 	'''
 file_download - Download file from F5 via iControl
 Usage - file_download(bigip_obj,src_file,dst_file,chunk_size,buff = n)
-    bigip_obj - the bigsuds icontol object
-    src_file - file on F5
-    dst_file - local file
-    chunk_size - download size for each chunk
-    buff - (optional) size of file write buffer, default 1MB
-Returns - list  
-Element 0 - Job completed - True/False
-Element 1 - dict keys - 
-            bytes - returns file size in bytes if job completed
-            error - returns error message if job failed
+    @param bigip_obj: the bigsuds icontol object
+    @param src_file: file on F5
+    @paramdst_file: local file
+    @paramchunk_size: download size for each chunk
+    @parambuff: (optional) size of file write buffer, default 1MB
+Returns - returns file size in bytes if job completed
+Raises exceptions if job failed
 	'''
 	# Set begining vars
-	download = 1
 	foffset = 0
 	timeout_error = 0 
 	fbytes = 0
 	
-	# Open file for writing, default buffer size is 1MB
-	try:
-		# Open partial file for writing
-		f_dst = open(dst_file + '.part','w',buff)
-	except:
-		e = sys.exc_info()[1]
-		raise bigsuds.ConnectionError('Can\'t create file: %s' % e)
-	
+	# Open temp file for writing, default buffer size is 1MB
+	f_dst = open(dst_file + '.tmp','w',buff)
+
 	# Main loop
-	while download:
+	while True:
 		# Try to download chunk
 		try:
-			chunk = bigip_obj.System.ConfigSync.download_file(file_name = src_file, chunk_size = chunk_size, file_offset = foffset)
+			chunk = bigip_obj.System.ConfigSync.download_file(file_name = src_file, 
+																			chunk_size = chunk_size, 
+																			file_offset = foffset)
 		except:
 			e = sys.exc_info()[1]
 			timeout_error += 1
@@ -90,10 +83,9 @@ Element 1 - dict keys -
 		# Check to see if chunk is end of file
 		fprogress = chunk['return']['chain_type']
 		if (fprogress == 'FILE_FIRST_AND_LAST')  or (fprogress == 'FILE_LAST' ):
-			# Close file, rename from name.part to name
+			# Close file, rename from name.tmp to name
 			f_dst.close()
-			os.rename(dst_file + '.part' , dst_file)
-			download = 0
+			os.rename(dst_file + '.tmp' , dst_file)
 			return fbytes
 		
 		# set new file offset

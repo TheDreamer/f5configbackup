@@ -1,36 +1,33 @@
 <?php
 include("include/session.php");
+include("include/dbconnect.php");
 
 // include common content
 include("include/header.php");
 include("include/menu.php");
 
 // Get status details from internal web service
+require_once '/opt/f5backup/ui/include/PestJSON.php';
 function webstatus () {
-  //Connect to internal webservice
-  $url = 'http://127.0.0.1:5380/api/v1.0/status';
-  $curl = curl_init($url);
-  curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json')); 
-  $result = json_decode(curl_exec($curl), true);
+	//Connect to internal webservice
+	try {
+		//Connect to internal webservice
+		$pest = new PestJSON('http://127.0.0.1:5380');
+		$result = $pest->get('/api/v1.0/status');  
+	} catch (Exception $e) {
+		$error_msg = $e->getMessage();
+		$error_class = get_class($e);
+		return "<p><font color=\"red\"><strong>Internal web service error: $error_class - $error_msg</strong></font></p>";
+	};
 
-  //Did any curl errors occur ?
-  if (curl_errno($curl)) {
-    $error_msg = curl_error($curl);;
-    return "<p><font color=\"red\"><strong>Internal web service error: $error_msg</strong></font></p>";
-  };
-
-  // Did server return an error ?
-  $rtn_code = curl_getinfo($curl,CURLINFO_HTTP_CODE);
-  if ( $rtn_code != 200 ) {
-    $error_msg = $result['error'];
-    return "<p><font color=\"red\"><strong>ERROR: $error_msg</strong></font></p>";
-  };
-
-$status = $result['status'];
-return "<p><strong>System status: $status</strong></p>";
-  
+	if ($result['status'] == 'ERROR' ) {
+		$error_msg = $result['error'];
+		return "<p><font color=\"red\"><strong>ERROR: $error_msg</strong></font></p>";
+	} elseif ($result['status'] == 'GOOD' ) {
+		return "<p><strong>System status: Online</strong></p>";
+	};
 };
+
 ?>
 	<div id="pagelet_title">
 		Status

@@ -1,6 +1,8 @@
 <?php
 include("include/session.php");
 include("include/dbconnect.php");
+include("include/dbcore.php");
+
 
 # include common content
 include("include/header.php");
@@ -21,7 +23,7 @@ if ( $main_page ) {
 
 	# loop through array to make device table
 	$count = 1;
-	foreach ($dbh->query($sql) as $row) {
+	foreach ($dbcore->query($sql) as $row) {
 		$id = $row['ID'];
 		$date = $row['DATE'];
 		$time = date('Y-m-d H:i:s',$row['TIME']);
@@ -39,7 +41,7 @@ if ( $main_page ) {
 	$ID = $_GET["id"];
 	if (is_numeric($ID)) {
 		# Get jobs from DB
-		$sth = $dbh->prepare("SELECT DATE,TIME,ERRORS,COMPLETE,DEVICE_TOTAL,DEVICE_COMPLETE"
+		$sth = $dbcore->prepare("SELECT DATE,TIME,ERRORS,COMPLETE,DEVICE_TOTAL,DEVICE_COMPLETE"
 									.",DEVICE_W_ERRORS FROM JOBS WHERE ID = ?");
 		$sth->bindParam(1,$ID); 
 		$sth->execute();
@@ -56,7 +58,7 @@ if ( $main_page ) {
 		// Get device ID for hyperlink to device w/ errors
 		$error_list = '';
 		foreach ($device_w_errors as $i) {
-			$sth = $dbh->prepare("SELECT NAME FROM DEVICES WHERE ID = '$i'");
+			$sth = $dbcore->prepare("SELECT NAME FROM DEVICES WHERE ID = '$i'");
 			$sth->execute();
 			$devname = $sth->fetchColumn();
 			$error_list .= "<a href=\"/devices.php?page=device&id=$i\">$devname</a> &nbsp";
@@ -84,15 +86,17 @@ EOD;
 
 # Page HTML
 ?>
-<div id="pagelet_title">
-	<a href="jobs.php">Backup Jobs</a>
-	<? if ( ! $main_page ) {echo "> $date";} ?>
-</div>
+	<div id="pagelet_title">
+		<a href="jobs.php">Backup Jobs</a>
+		<? if ( ! $main_page ) {echo "> $date";} ?>
+	</div>
+	<div id="pagelet_body">
 <?
 echo $contents;
 
+echo "</div>";
 include("include/footer.php");
 
 /* Close DB  */
-$dbh = null;
+$dbcore = null;
 ?>

@@ -3,7 +3,7 @@
 $ID = $_GET["id"];
 if (is_numeric($ID)) {
 	// Get device from DB
-	$sth = $dbh->prepare("SELECT NAME,ID,IP,CID_TIME,DATE_ADDED,LAST_DATE,
+	$sth = $dbcore->prepare("SELECT NAME,ID,IP,CID_TIME,DATE_ADDED,LAST_DATE,
 								VERSION,BUILD,MODEL,HOSTNAME,DEV_TYPE,SERIAL,ACT_PARTITION
 								FROM DEVICES WHERE ID = ?");
 	$sth->bindParam(1,$ID); 
@@ -76,7 +76,7 @@ EOD;
 	<tr class="pglt_tb_hdr"><td colspan="3">Archive files</td></tr>\n
 EOD;
 	// Get list of files from DB
-	$sth = $dbh->prepare("SELECT ID,DIR,FILE FROM ARCHIVE WHERE DEVICE = ?"
+	$sth = $dbcore->prepare("SELECT ID,DIR,FILE FROM ARCHIVE WHERE DEVICE = ?"
 								."ORDER BY FILE");
 	$sth->bindParam(1,$ID); 
 	$sth->execute();		

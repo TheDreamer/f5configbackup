@@ -21,7 +21,7 @@ if(!(isset( $_SESSION['active']))) {
 // Check permissions for RBAC
 if ( isset($permissions) ) {
 	// Search permissions array for users level,
-	if ( ! array_key_exists($_SESSION['role'],array_fill_keys( $permissions, null)) ) {
+	if ( ! in_array($_SESSION['role'],$permissions) ) {
 		// Redirect to index.php with error code if no match
 		$page = urlencode(strtok($_SERVER["REQUEST_URI"],'?'));
 		header("Location: /index.php?error=403&page=$page");

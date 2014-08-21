@@ -7,29 +7,51 @@ include("include/header.php");
 include("include/menu.php");
 
 // Page HTML
-?>
-	<div id="pagelet_title">
-		<a href="settings.php">Settings</a> 
-	</div>
+$contents = <<<EOD
 	<table class="pagelet_table">
 		<tr class="pglt_tb_hdr">
 			<td>Settings</td>
 		</tr>
-		<tr class="odd_ctr">
-			<td><a href="generalsettings.php">General</a></td>
-		</tr>
-		<tr class="even_ctr">
-			<td><a href="users.php">Users</a></td>
-		</tr>
-		<tr class="odd_ctr">
-			<td><a href="backupsettings.php">Backups</a></td>
-		</tr>
-		<tr class="even_ctr">
-			<td><a href="admin.php">Admin Password</a></td>
-		</tr>
-	</table>
-<?
+EOD;
 
+// Array of settings menu links
+$menu = array (
+	array('General','generalsettings.php'),
+	array('Users','users.php'),
+	array('Authentication','auth.php'),
+	array('Auth Groups','authgrp.php'),
+	array('Backups','backupsettings.php'),
+	array('Admin Password','admin.php')
+);
+
+
+//Build HTML menu
+$count = 1;
+foreach ($menu as $i) {
+	$class = '';
+	$link = $i[1];
+	$name = $i[0];
+	$class = "even";
+	if ($count & 1 ) {$class = "odd";};
+	$count ++;
+	$contents .= <<<EOD
+		<tr class="$class">
+			<td><a href="$link">$name</a></td>
+		</tr>\n
+EOD;
+
+};
+?>
+	<div id="pagelet_title">
+		<a href="settings.php">Settings</a> 
+	</div>
+	<div id="pagelet_body">
+<?
+$contents .= "	</table>\n";
+
+echo $contents;
+
+echo "\t</div>\n";
 include("include/footer.php");
 
 // Close DB 

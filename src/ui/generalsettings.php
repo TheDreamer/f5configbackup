@@ -38,6 +38,7 @@ $dbh->commit();
 
 // Update values for post
 $post = 0;
+$updates = '';
 if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
 	$dbh->beginTransaction();
@@ -104,8 +105,13 @@ EOD;
 	<div id="pagelet_title">
 		<a href="settings.php">Settings</a> > General Settings
 	</div>
+	<div id="pagelet_body">
 <?
-
 echo $contents."\n";
+
+echo "</div>";
 include("include/footer.php");
+
+// Close DB connection
+$dbh = null;
 ?>

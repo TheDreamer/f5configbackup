@@ -3,10 +3,6 @@
 Admin password updates
 Remove db file option config file
 
-******* Thoughts ***************************
-
-User enabled/disabled selection
-User RBAC
 
 
 admin password reset

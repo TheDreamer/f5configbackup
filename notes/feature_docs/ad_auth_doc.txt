@@ -1,0 +1,123 @@
+AD Auth Documentation 
+
+1) Introduction -
+This document covers the AD auth feature for the Config Backup for F5 program introduced 
+in version 3.1. It gives a very high level overview of the major components of the feature
+and slightly more detailed description. It won't explain the whole process flow of each 
+component but is rather intended as an aid to give the big picture and will help the reader 
+be better able to understand the logic from code comments.
+
+2) High Level Overview
+AD authentication consists of the following components -
+    
+   2.1) Core Python library (./lib/adauth.py) - This lib contains a class for performing 
+      the basic LDAP query functions. Other code is needed to make effective use of it.
+      
+   2.2) Backup auth function lib (./lib/backup_adauth.py) - This lib is used by the backup 
+      program to manage the process of AD authentication such as lookup of servers and 
+      bind username and password from the DB, server timeout and subsequent removal of 
+      servers from the server list, etc. It uses the core lib for the AD query portion. 
+      
+   2.3) Core DB tables - There are various tables in the ./db/main.db sqlite file used in the 
+      AD auth feature. This contain the AD servers and their various settings, the bind 
+      username and password, domain etc.
+      
+   2.4) Internal API functions - The AD auth functions were added to the internal API and 
+      is made available through a  REST call. The backup auth function lib is imported into
+      the APIs Flask app. It returns a True/False answer for the user validity, a list of 
+      group memberships for valid user credentials or an error message for invalid creds. 
+      
+   2.5) PHP Pest Client - The pest library is used by the PHP web UI for the internal API query.
+      
+   2.6) Web UI DB - This DB was created to move any of the tables for the web UI out of the 
+      core DB file to prevent database locking contention between the Python and PHP 
+      components.
+   
+   2.7) Web UI login page - The web UI login page was modified to allow for the use of the 
+      AD auth via Pest calls to the internal API. It also handles the RBAC role assignment 
+      based on the auth groups the user's AD group membership.
+      
+   2.8) Web UI Auth Settings page - This page allows you to set the authentication method and 
+      the setting for AD authentication such as the servers, bind user and password, domain,
+      etc.
+      
+   2.9) Web UI Auth group page - This page is were you setup the mapping of the users AD 
+      membership to the appropriate UI role. You can also set the order used to match
+      groups to the role.
+      
+      
+3) Detailed Description
+   
+   3.1) Core Python library (./lib/adauth.py) - 
+      This library contains a single class that for the basic LDAP functions. It performs
+      an LDAP bind with supplied credentials to retrieve the the users UPN by searching with 
+      their sAMAccountName and if the username is found it retrieves the memberOf attributes. 
+      It then takes their UPN and and attempts an LDAP bind with their supplied credentials
+      to verify their password. If the credentials are valid then it returns a list with a 
+      True and a dict with the group memberships. If the username or password is invalid it 
+      returns a list with a False and the reason for the error. This lib does not catch 
+      server timeout exceptions so they must be caught by higher level code.
+      
+   3.2) Backup auth function lib (./lib/backup_adauth.py) - 
+      This library contains the higher level processes specific to the backup program 
+      processes. It contains a single function that is responsible for retrieving the list of
+      AD servers and their attributes as well as the auth properties such as bind user, the 
+      encrypted password and domain from the core DB. It decrypts the password using the 
+      backup key from the keystore then attempts to perform the LDAP authentication to an AD 
+      server using the aduth library for the LDAP query. If an AD server has a connection 
+      timeout exception, it will mark the current time that the server connection failed in
+      the DB and try the next server. If a server has been marked down within the last 10 
+      minutes it will automatically skip it without trying to connect and move on to the next.
+      
+      The lib will pass the list from the the adauth as the return for good or bad credentials.
+      If no servers are available, the lib will pass a list with False and an error of no 
+      available servers. All other exceptions (such as file read errors, etc.) need to be 
+      handled by higher level code. The lib logs to the file ./log/auth.log.
+      
+   3.3) Core DB tables - 
+      The core DB sqlite file which is used by the Python core backup program and the API. For
+      the AD auth feature is contains the tables AUTH and AUTHSERVERS. AUTH contains the bind 
+      user name string, bind user password string, and the domain name string. AUTHSERVERS 
+      contains a list of servers, one per row with the IP or DNS name string, a boolean 
+      indicating use of LDAPS and the timedown integer if marked down by the backup_adauth lib.
+   
+   3.4) Internal API functions - 
+      The existing internal API was extended to make the AD auth functions available. It 
+      returns a JSON True/False response saying if user auth was successful. If it was it also 
+      returns an array of group memberships. If it failed it returns the reason for failure.
+      
+   3.5) PHP Pest Client - 
+      To make the calls to the internal API easier, Pest by DJ Sipe is used by the web UI 
+      https://github.com/educoder/pest). This replaced the manually coded CURL calls used on 
+      previous API calls.
+      
+   3.6) Web UI DB - 
+      Any of the tables that where used only for the web UI where removed from the core DB to 
+      a separate sqlite file. This was done because during login the UI needed to query the DB 
+      for the authentication and auth group but doing so locked the core DB. This created 
+      contention because at the same time the web UI had the lock, the backup API needed to 
+      write to the DB for AD auth. Move the tables used only by the UI solved this issue.
+      
+   3.7) Web UI login page - 
+      The web UI login page was revamped to allow for AD auth as well as for code clean up. The
+      page will search the DB to find out if local or AD auth is setup. It also allows for the 
+      local admin login regardless of the auth mode. When AD auth is configured, it will use 
+      Pest to make the AD auth call to the internal API. If login is successful, it will use 
+      the order list of auth groups to match the memberOf attribute and if there is a match it
+      will assign the appropriate role using the RBAC feature. For local auth it will simply 
+      match user hashes from the UI DB and assign the role.
+      
+   3.8) Web UI Auth Settings page - 
+      This page is where you set the auth mode (local or AD), bind user UPN and password, the
+      domain name, primary and secondary auth server IP or DNS name and if TLS is used for the 
+      LDAP connection. It write everything to the core DB except for the auth mode which is 
+      written to the UI DB. For the bind password, it makes a REST call with Pest to the 
+      internal API's existing encrypt function which return the encrypted password. The 
+      encrypted password is then written to the core DB. 
+      
+   3.9) Web UI Auth group page - 
+    The auth group page has the list of auth groups in their matching order. From this page
+    you can change the matching order and add/change/delete a group. As in the standard format 
+    for the project, any POSTs or gets with the right URI params are handled by includes which
+    grab function specific code from the ./ui/include folder. This is done to keep code size 
+    for each page small.

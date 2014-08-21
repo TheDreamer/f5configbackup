@@ -1,0 +1,24 @@
+<?php
+require_once '/opt/f5backup/ui/include/PestJSON.php';
+$pest = new PestJSON('http://127.0.0.1:5380');
+
+$result = $pest->get('/api/v1.0/status');
+
+$result = $pest->get('/api/v1.0/crypto/encrypt/');
+
+$data = array('string' => 'this is a test string' );
+$hash = $pest->post('/api/v1.0/crypto/encrypt/',$data);
+
+$data = array('user' => $user,'passwd' => $passwd );
+
+$info = $pest->post('/api/v1.0/adauth/authenticate/', $data);
+
+try {
+	$data = array('string' => 'this is a test string' );
+	$ans = $pest->post('/api/v1.0/crypto/encrypt/',$data);
+} catch (Exception $e) {
+	print $e->getMessage();
+	print get_class($e);
+};
+
+?>

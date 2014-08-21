@@ -98,9 +98,11 @@ EOD;
 	<div id="pagelet_title">
 		<a href="settings.php">Settings</a> <? if ( isset($title) ) {echo "> $title";} ?> 
 	</div>
+	<div id="pagelet_body">
 <?
 echo $contents;
 
+echo "</div>";
 include("include/footer.php");
 
 // Close DB 

@@ -15,13 +15,14 @@ $permissions = array(1);
 
 include("include/session.php");
 include("include/dbconnect.php");
+include("include/dbcore.php");
 
 // include common content
 include("include/header.php");
 include("include/menu.php");
 
 // Get backup settings
-$sth = $dbh->query("SELECT NAME,VALUE FROM BACKUP_SETTINGS_INT");
+$sth = $dbcore->query("SELECT NAME,VALUE FROM BACKUP_SETTINGS_INT");
 $sth->execute();
 foreach ($sth->fetchAll() as $setting) {
 	$setarray[$setting['NAME']] = $setting['VALUE'];
@@ -37,7 +38,7 @@ $time_min = $setarray['BACKUP_TIME'] % 60;
 $time_hr =  ($setarray['BACKUP_TIME'] - $time_min)/60;
 
 // Get username 
-$sth = $dbh->prepare("SELECT NAME FROM BACKUP_USER WHERE ID = 0");
+$sth = $dbcore->prepare("SELECT NAME FROM BACKUP_USER WHERE ID = 0");
 $sth->execute();
 $user = $sth->fetchColumn();
 $message = '';
@@ -64,9 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
 
 $contents = <<<EOD
-	<div id="pagelet_title">
-		<a href="settings.php">Settings</a> > Backup Settings 
-	</div>
 	$message
 	<form action="backupsettings.php"method="post">
 	<table class="pagelet_table">
@@ -82,9 +80,9 @@ $contents = <<<EOD
 	<tr class="odd">
 		<td>Backup Time (Hr:Min)</td>
 		<td>
-			<input type="text"name="time_hr" size="2" maxlength="2" style="width: 20px;" value="$time_hr">
+			<input type="text" name="time_hr" size="2" maxlength="2" style="width: 20px;" value="$time_hr">
 			<strong>:</strong>
-			<input type="text"name="time_min" size="2" maxlength="2" style="width: 20px;" value="$time_min">
+			<input type="text" name="time_min" size="2" maxlength="2" style="width: 20px;" value="$time_min">
 			&nbsp 24Hr Format
 		</td>
 	</tr>
@@ -102,11 +100,18 @@ $contents = <<<EOD
 	<input type="submit"name="submit"value="Update">
 	</form>\n
 EOD;
-
+?>
+	<div id="pagelet_title">
+		<a href="settings.php">Settings</a> > Backup Settings 
+	</div>
+	<div id="pagelet_body">
+<?
 echo $contents;
 
+echo "</div>";
 include("include/footer.php");
 
 // Close DB 
 $dbh = null;
+$dbclose = null;
 ?>

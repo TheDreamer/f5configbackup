@@ -21,11 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
 		if (isset($_POST["dns"])) { $ip = "NULL"; };
 			
 		// Are there any blank fields ?
-		if ($name != "" && $ip != "") {			
+		if ($name != "" && $ip != "") {
 			// If all checks pass then insert into DB
 			//if ($error == 0) { 
 			$time = time();
-			$sth = $dbh->prepare("INSERT INTO DEVICES ('NAME','IP','DATE_ADDED','CID_TIME','LAST_DATE') 
+			$sth = $dbcore->prepare("INSERT INTO DEVICES ('NAME','IP','DATE_ADDED','CID_TIME','LAST_DATE') 
 										VALUES (:name,:ip,$time,0,0)");
 			$sth->bindValue(':name',$name); 
 			$sth->bindValue(':ip',$ip); 

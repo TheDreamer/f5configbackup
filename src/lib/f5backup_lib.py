@@ -256,7 +256,7 @@ def main():
 	# Open new log file. Quit if permission denied.
 	try:
 		log = logging.getLogger()
-		log.setLevel(logging.INFO)
+		log.setLevel(logging.NOTSET)
 		fh = logging.FileHandler(
 					filename='%s/log/%s-backup.log' % (sys.path[0],date))
 		fh.setLevel(logging.INFO)

@@ -11,44 +11,28 @@ $permissions = array(1,2,3);
 3 - Operator
 4 - Guest
 */
-$permissions = array(1,2);
 
 include("include/session.php");
 include("include/dbconnect.php");
-include("include/dbcore.php");
 
 // include common content
 include("include/header.php");
 include("include/menu.php");
 
-//Which device mod page is this ?
-switch ( $_GET["page"] ) {
-	case "Delete" :
-		include ("include/device_delete.php");
-		break;
-	case "Add" :
-		include ("include/device_add.php");
-		break;
-	default:
-		// if none, redirect to devices page
-		header("Location: /devices.php"); 
-		die;
-};
+// Build site body here and put in var $contents
 
 // Page HTML
 ?>
 	<div id="pagelet_title">
-		<a href="devices.php">F5 Devices</a> <? if ( isset($title) ) {echo "> $title";} ?> 
+		<a href="template.php">Template</a>  
 	</div>
 	<div id="pagelet_body">
 <?
 echo $contents;
 
-echo "</div>";
+echo "\t</div>\n";
 include("include/footer.php");
 
-/* Close DB  */
+// Close DB 
 $dbh = null;
-$dbcore = null;
-
 ?>

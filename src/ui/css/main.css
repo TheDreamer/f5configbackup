@@ -1,4 +1,35 @@
+html {
+	height: 100%;
+}
 
+body {
+	background-color:#deddd9;
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	font: 16px arial,helvetica,sans-serif;
+}
+/* Misc properties */
+.error  {
+	color: #FF0000;
+}
+.warning  {
+	color: #FF8000;
+}
+img {
+	border-style:none;
+}
+/* Hyperlink properties */
+a:visited {
+	color:inherit;
+}
+a:link {
+	color:inherit;
+	text-decoration: none;
+}
+a:hover {
+	color:#FF0000;
+}
 
 /* ------- main table ------------- */
 table.main {
@@ -9,7 +40,7 @@ table.main {
 td.header {
 	padding: 4px;
 	text-align:left;
-	height: 120px;
+	height: 110px;
 	background-image:url('/images/banner.png');
 	background-repeat:repeat-x;
 	color:#F2F2F2;
@@ -19,28 +50,29 @@ td.menu {
 	vertical-align: top;
 	width:150px;
 	background-color:#C4C2BE;
-	padding:0;
-	margin:0;
+	padding:0px;
+	margin:0px;
 }
 td.body {
 	vertical-align: top;
-	padding: 8px;
+	padding-left: 4px;
 }
 
 /* main table header elements*/
 div#title {
 	position: absolute;
-	top:0;
+	top:0px;
 	padding: 8px;
 	font-size:30px;
 	font-weight:bold;
 }
 div#logout {
 	position: absolute;
-	top:14;
-	right:12;
+	top: 14px;
+	right: 12px;
 	border: 1px solid black;
 	font-weight:bold;
+	font-size: 16px;
 	width: 80px;
 	height: 20px;
 	text-align:center;
@@ -88,8 +120,8 @@ div.panel {
 	position : relative;
 	width:100%;
 	height: 40px;
-	margin: 0;
-	padding: 0;
+	margin: 0px;
+	padding: 0px;
 	background-image:url('/images/panel.png');
 	background-repeat:repeat-x;
 	text-align:left;
@@ -105,20 +137,23 @@ img.panel {
 /* Pagelet properties */
 div#pagelet_title {
 	position: relative;
-	top: -8;
-	left: 0;
+	top: -1px;
 	font-size: 15px;
 	font-weight: bold;
 	padding-left: 4px;
 	color: #F2F2F2;
-	height: 30;
+	height: 30px;
 	line-height: 30px;
 	background-image: url('/images/pagelet_title.png');
+}
+div#pagelet_body {
+	padding-top: 8px;
+	padding-left: 4px;
 }
 table.pagelet_table {
 	border: 1px solid #999999;
 	border-collapse:collapse;
-	min-width: 150;
+	min-width: 150px;
 }
 table.pagelet_table td {
 	font-size:15px;
@@ -152,5 +187,6 @@ table.pagelet_table  a {
 pre.log {
 	white-space: pre-wrap;
 	word-wrap: break-word;
-	width: 700;
+	width: 700px;
 }
+

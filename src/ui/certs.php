@@ -1,6 +1,7 @@
 <?php
 include("include/session.php");
 include("include/dbconnect.php");
+include("include/dbcore.php");
 
 # include common content
 include("include/header.php");
@@ -8,7 +9,7 @@ include("include/menu.php");
 
 
 # Make device array
-$sth = $dbh->query("SELECT NAME,ID FROM DEVICES ORDER BY NAME");
+$sth = $dbcore->query("SELECT NAME,ID FROM DEVICES ORDER BY NAME");
 $sth->execute();		
 foreach ($sth->fetchAll() as $dev) {
 	$devarray[$dev['ID']] = $dev['NAME'];
@@ -18,7 +19,7 @@ foreach ($sth->fetchAll() as $dev) {
 if (isset($_GET["id"]) && is_numeric($_GET["id"])) {
 	// Get cert details
 	$time = time();
-	$sth = $dbh->prepare("SELECT NAME,DEVICE,ISSUER,SN,
+	$sth = $dbcore->prepare("SELECT NAME,DEVICE,ISSUER,SN,
 									KEY,SUB_C,SUB_S,SUB_L,SUB_O,
 									SUB_OU,SUB_CN,EXPIRE 
 									FROM CERTS WHERE ID = ?");
@@ -86,7 +87,7 @@ EOD;
 	// loop through array to make cert table
 	$count = 1;
 	$time = time();
-	foreach ($dbh->query($sql) as $row) {
+	foreach ($dbcore->query($sql) as $row) {
 		$id = $row['ID'];
 		$name = $row['NAME'];
 		$device = $row['DEVICE'];
@@ -115,11 +116,14 @@ EOD;
 	<div id="pagelet_title">
 		<a href="certs.php">Certificates </a><? if ( isset($title) ) {echo "> $title";} ?> 
 	</div> 
+	<div id="pagelet_body">
 <?
 echo $contents;
 
+echo "</div>";
 include("include/footer.php");
 
 /* Close DB  */
+$dbcore = null;
 $dbh = null;
 ?>

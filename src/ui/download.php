@@ -15,11 +15,12 @@ $permissions = array(1,2,3);
 
 include("include/session.php");
 include("include/dbconnect.php");
+include("include/dbcore.php");
 
 // Does request have file id param and is numeric ?
 if ( isset($_GET["id"]) && is_numeric($_GET["id"]) ) {
 		// Get file name from DB
-		$sth = $dbh->prepare("SELECT DIR,FILE FROM ARCHIVE WHERE ID = ?");
+		$sth = $dbcore->prepare("SELECT DIR,FILE FROM ARCHIVE WHERE ID = ?");
 		$sth->bindParam(1,$_GET["id"]); 
 		$sth->execute();
 		$row = $sth->fetch();
@@ -47,5 +48,6 @@ EOD;
 };
 
 /* Close DB  */
+$dbcore = null;
 $dbh = null;
 ?>

@@ -1,6 +1,7 @@
 <?php
 include("include/session.php");
 include("include/dbconnect.php");
+include("include/dbcore.php");
 
 // include common content
 include("include/header.php");
@@ -25,7 +26,7 @@ EOD;
 
 	// loop through array to make device table
 	$count = 1;
-	foreach ($dbh->query("SELECT NAME,ID,IP FROM DEVICES ORDER BY NAME") as $row) {
+	foreach ($dbcore->query("SELECT NAME,ID,IP FROM DEVICES ORDER BY NAME") as $row) {
 		$name = $row['NAME'];
 		$id = $row['ID'];
 		$ip = $row['IP'];
@@ -57,11 +58,15 @@ EOD;
 	<div id="pagelet_title">
 		<a href="devices.php">F5 Devices</a> <? if ( isset($title) ) {echo "> $title";} ?> 
 	</div>
+	<div id="pagelet_body">
 <?
 echo $contents;
 
+echo "</div>";
 include("include/footer.php");
 
 /* Close DB  */
 $dbh = null;
+$dbcore = null;
+
 ?>

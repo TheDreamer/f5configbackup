@@ -26,8 +26,9 @@ if (is_numeric($_GET["id"])) {
 				// Password validation and hash creation
 				$hash = password_func($_POST["password"],$_POST["password2"]);
 				// Write hash to DB
-				$sth = $dbh->prepare("UPDATE USERS SET HASH = ? WHERE ID = $id");
+				$sth = $dbh->prepare("UPDATE USERS SET HASH = ? WHERE ID = ?");
 				$sth->bindParam(1,$hash); 
+				$sth->bindParam(2,$id); 
 				$sth->execute();
 				$post_message .= '"Password" ';
 				$post ++;
@@ -38,8 +39,9 @@ if (is_numeric($_GET["id"])) {
 				throw new Exception('Invalid role ID'); 
 			};
 			if ($row['ROLE'] != $_POST["role"]) {
-					$sth = $dbh->prepare("UPDATE USERS SET ROLE = ? WHERE ID = $id");
+					$sth = $dbh->prepare("UPDATE USERS SET ROLE = ? WHERE ID = ?");
 					$sth->bindParam(1,$_POST["role"]); 
+					$sth->bindParam(2,$id); 
 					$sth->execute();
 					$post_message .= '"User Role" ';
 					$post ++;

@@ -166,7 +166,7 @@ cp $PHP_CONF $PHP_CONF.orig
 cp php.ini $PHP_CONF
 
 #------------- Create DB -------------
-
+######################## add new DB for ui -----------------------------*************--------------
 echo -e "\nCreating DB file $BASE_DIR/db/main.db"
 
 echo > $BASE_DIR/db/main.db
