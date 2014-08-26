@@ -74,7 +74,7 @@ if ( $main_page ) {
 		</tr>
 	</table>
 	<h3>Backup Job Log -</h3>
-	<pre class"log">
+	<pre class="log">
 $log_file
 	</pre>\n
 EOD;
