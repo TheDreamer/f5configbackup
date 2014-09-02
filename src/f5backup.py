@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import sys, time
+import sys
+import time
 import traceback
 import sqlite3 as sq
 from daemon import runner
@@ -7,6 +8,8 @@ from daemon import runner
 sys.path.append('%s/lib' % sys.path[0])
 import f5backup_lib
 import logsimple
+import cert_rec
+import certmail
 
 # Default action for uncaught errors
 def execption_hook(type,value,tb):
@@ -28,9 +31,9 @@ class f5backup():
       self.pidfile_path = '/opt/f5backup/pid/f5backup.pid'
       self.pidfile_timeout = 5
    
-   def dbtime(self):
+   def backup_time(self):
       '''
-   dbtime() - Get backup time from DB
+   backup_time() - Get backup time from DB
       '''
       try:
          # Connect to DB
@@ -44,9 +47,29 @@ class f5backup():
          db.close()
       except:
          e = sys.exc_info()[1]
-         self.log.critical('Error: Cant open DB - %s' % e)
-         exit()
+         self.log.critical('Error: Cant open DB,backup_time - %s' % e)
+         raise
       return db_time
+   
+   def email_time(self):
+      '''
+   email_time() - Get email report setting from DB
+      '''
+      try:
+         # Connect to DB
+         db = sq.connect(sys.path[0] + '/db/main.db')
+         dbc = db.cursor()
+         
+         # Get email
+         dbc.execute("""SELECT SEND_REPORT,DAILY,ON_DAY 
+                        FROM EMAIL WHERE ID = 0""")
+         (send,daily,on_day) = dbc.fetchone()
+         db.close()
+      except:
+         e = sys.exc_info()[1]
+         self.log.critical('Error: Cant open DB, email_time - %s' % e)
+         raise
+      return {'send':send,'daily':daily,'on_day':on_day}
    
    def run(self):
       # Open new log file. Quit if permission denied.
@@ -57,7 +80,7 @@ class f5backup():
       except:
          e = sys.exc_info()[1]
          print 'Unable to open logfile - %s' % e
-         exit()
+         raise
       
       # Get log level from DB and reset in logging object
       self.log.info('Getting log level from db.')
@@ -68,7 +91,7 @@ class f5backup():
       except:
          e = sys.exc_info()[1]
          print 'Error: Cant open DB - %s' % e
-         exit()
+         raise
       self.log.setlevel( str(dbc.fetchone()[0]) )
       db.close()
 
@@ -81,7 +104,7 @@ class f5backup():
 
          # Get DB time
          self.log.debug('Checking DB backup time.')
-         db_time = self.dbtime()
+         db_time = self.backup_time()
          self.log.debug('DB backup time is %d' % db_time)
          
          # Does minute time match DB time ?
@@ -93,11 +116,42 @@ class f5backup():
                f5backup_lib.main()
             except f5backup_lib.BackupError as e:
                self.log.error('An error has occured - %s' % e[1])
-            
             self.log.info('Backup job completed.')
-            # wait 61 seconds after finishing to 
+            
+            # Reconcile certs
+            self.log.info('Starting cert reconcile.')
+            reconcile = cert_rec.CertReconcile(self.log)
+            reconcile.prepare()
+            reconcile.reconcile()
+            del reconcile
+            self.log.info('Completed cert reconcile.')
+            
+            #Email cert report
+            self.log.info('Preparing cert report for email.')
+            email = self.email_time()
+            # Are reports turned on ?
+            if email['send']:
+               if email['daily']:
+                  # If report interval is daily send report
+                  report = certmail.CertReport(self.log)
+                  report.prepare()
+                  report.send()
+                  self.log.info('Cert report sent.')
+               else:
+                  # Otherwise check day
+                  if email['on_day'] == time.localtime()[6]:
+                     report = certmail.CertReport(self.log)
+                     report.prepare()
+                     report.send()
+                     self.log.info('Cert report sent.')
+                  else:
+                     self.log.debug('No report for today.')
+            else:
+               self.log.info('Email reports turned off.')
+            
+            # wait 60 seconds after finishing to 
             # ensure job does not run twice
-            time.sleep(61)
+            time.sleep(60)
          
          # wait 10 secs before trying again
          time.sleep(10)

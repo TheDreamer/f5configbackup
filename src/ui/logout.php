@@ -8,5 +8,12 @@ if(isset( $_SESSION['active'])) {
 	unset($_SESSION['time']);
 	session_destroy();
 }
-header("Location: /login.php");
+
+// Get page that send to login and add as param of form action url
+$URL = "";
+if (isset($_GET["page"])) {
+  $URL="?page=".urlencode($_GET["page"]);
+};
+
+header("Location: /login.php$URL");
 ?>

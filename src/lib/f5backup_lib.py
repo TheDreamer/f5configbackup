@@ -174,7 +174,7 @@ get_certs(bigsuds_obj,dev_id) - gets cert info
                i['certificate']['subject']['common_name'])
             )
          # Insert list into DB
-         self.dbc.executemany( '''INSERT INTO CERTS ('DEVICE',
+         self.dbc.executemany( '''INSERT INTO CERTS_TEMP ('DEVICE',
          'NAME','ISSUER','EXPIRE','SN','KEY','SUB_C',
          'SUB_S','SUB_L','SUB_O','SUB_OU','SUB_CN') 
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''', certlist)
@@ -318,9 +318,9 @@ def main():
    devices = [ {'id' : idn, 'name' : name, 'ip' : ip, 'cid': cid} for idn, name, ip, cid in dbc.fetchall() ]
    
    # Delete all certs from DB
-   log.debug('Deleting all certs from DB')
+   log.debug('Deleting all certs from temp DB table.')
    try:
-      dbc.execute('DELETE FROM CERTS')
+      dbc.execute('DELETE FROM CERTS_TEMP')
       db.commit()
    except:
       e = sys.exc_info()[1]

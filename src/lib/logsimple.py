@@ -99,10 +99,11 @@ class LogSimple(object):
       try:
          self.fsize = os.stat(self.filename).st_size
       except OSError as e:
-         # If this is file does not exist error, pass exception up
+         # If this is file does not exist 
          if e.errno == 2:
             self.fsize = 0
          else:
+            # pass exception on for all other errors
             raise 
       
       self._logfile = open(self.filename,'a',0)
@@ -168,7 +169,7 @@ class LogSimple(object):
       if self._loglevel <= level and self._loglevel != 0:
          # UTC time or local?
          if self.utc:
-            dt = dt = datetime.utcnow()
+            dt = datetime.utcnow()
          else:
             dt = datetime.now()
          # format time to "Y-m-d H:M:S.Msec"

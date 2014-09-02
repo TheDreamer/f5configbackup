@@ -5,7 +5,7 @@ DIR VARCHAR(50),
 FILE VARCHAR(50)
 );
 
-CREATE TABLE CERTS (
+CREATE TABLE CERTS_TEMP (
 ID INTEGER PRIMARY KEY AUTOINCREMENT,
 DEVICE INT NOT NULL,
 NAME VARCHAR(50),
@@ -19,6 +19,22 @@ SUB_L VARCHAR(30),
 SUB_O VARCHAR(50),
 SUB_OU VARCHAR(50),
 SUB_CN VARCHAR(50) );
+
+CREATE TABLE CERTS (
+ID INTEGER PRIMARY KEY AUTOINCREMENT,
+DEVICE INT NOT NULL,
+NAME VARCHAR(50),
+ISSUER VARCHAR(50),
+EXPIRE INT NOT NULL,
+SN VARCHAR(50),
+KEY INT,
+SUB_C VARCHAR(4),
+SUB_S VARCHAR(30),
+SUB_L VARCHAR(30),
+SUB_O VARCHAR(50),
+SUB_OU VARCHAR(50),
+SUB_CN VARCHAR(50),
+ACK BOOLEAN );
 
 CREATE TABLE DEVICES (
 ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,6 +103,41 @@ LEVEL VARCHAR(10)
 INSERT INTO LOGGING VALUES('AUTH','INFO');
 INSERT INTO LOGGING VALUES('BACKUPJOB','INFO');
 INSERT INTO LOGGING VALUES('BACKUPD','INFO');
+
+CREATE TABLE EMAIL (
+ID INT,
+SEND_REPORT BOOLEAN,
+SENDER VARCHAR(50),
+SENDER_TITLE VARCHAR(50),
+TO_MAIL VARCHAR(255),
+SUBJECT VARCHAR(100),
+HIDE_ACK BOOLEAN,
+DAILY BOOLEAN,
+ON_DAY INT,
+TLS BOOLEAN,
+SERVER VARCHAR(30),
+PORT INT,
+LOGIN BOOLEAN,
+LOGIN_USER VARCHAR(30),
+LOGIN_PASS VARCHAR(150)
+);
+INSERT INTO EMAIL VALUES(
+                  0,
+                  1,
+                  'f5backup@email.com',
+                  'Config Backup for F5',
+                  'someuser@email.com',
+                  'Certificate Report',
+                  0,
+                  1,
+                  NULL,
+                  0,
+                  'smtp@email.com',
+                  25,
+                  0,
+                  'user',
+                  'hash'
+                  );
 
 -------------------------------------------------------------
 PRAGMA foreign_keys=OFF;

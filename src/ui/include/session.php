@@ -12,7 +12,7 @@ if(!(isset( $_SESSION['active']))) {
 // Check if the user is timed out
 	if ( (time() - $_SESSION['time']) > $_SESSION['timeout'] ) { 
 	// If current time - session time is > timeout, logout user	
-		header("Location: /logout.php"); 
+		header("Location: /logout.php?page=".urlencode($_SERVER['REQUEST_URI'])); 
 	} else {
 	// If not reset session time
 		$_SESSION['time'] = time();

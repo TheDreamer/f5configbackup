@@ -107,7 +107,7 @@ $contents = <<<EOD
 		<td>Use SSL?</td>
 		<td>
 			<input type="radio" name="tls" value="1" $tlsyes>Yes 
-			<input type="radio" name="tls" value="0" $tlsno>No
+			<input type="radio" name="tls" value="0" $tlsno>No (Not Recommended)
 		</td>
 	</tr>
 	<tr class="even">

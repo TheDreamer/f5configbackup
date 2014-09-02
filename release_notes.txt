@@ -20,39 +20,42 @@ Config Backup for F5 release notes
 
 This product includes PHP software, freely available from <www.php.net/software/>
 
+## Version 3.1 ##################################
+
+
 ## Version 3.0 ##################################
-	Created appliance
-	Moved backup settings to web UI
-	Moved backup job credentials via web UI
-	Add status indication to webUI
+   Created appliance
+   Moved backup settings to web UI
+   Moved backup job credentials via web UI
+   Add status indication to webUI
 
 ## Version 2.7 ##################################
-	Ported to Python 
-	Device communication through iControl (no more SSH)
-	Added cert info download
-	Added device info download
-	Added device add/delete through web UI
+   Ported to Python 
+   Device communication through iControl (no more SSH)
+   Added cert info download
+   Added device info download
+   Added device add/delete through web UI
 
 ## Version 2.5 ##################################
-	Added WebUI
-	Added JOB table cleaner 
+   Added WebUI
+   Added JOB table cleaner 
 
 ## Version 2.4.5 ##################################
-	SQL query enhancements
-	Shell detection bug fix
-	Fixed delete orphan matching bug
-	Fixed new CID time validation 
+   SQL query enhancements
+   Shell detection bug fix
+   Fixed delete orphan matching bug
+   Fixed new CID time validation 
 
 ## Version 2.4.4 ##################################
-	Added job reporting table to DB
+   Added job reporting table to DB
 
 ## Version 2.4.1 ##################################
-	Revamped shell detection
-	Fixed device dir creation bug
-	IP is updated in DB if a device IP changes in the device file
-	
+   Revamped shell detection
+   Fixed device dir creation bug
+   IP is updated in DB if a device IP changes in the device file
+   
 ## Version 2.4 ##################################
-	Added SQLite DB for device records
-	Added password based login and removed SSH key login
-	Added TMSH detection to allow non root login
-	Other misc fixes
+   Added SQLite DB for device records
+   Added password based login and removed SSH key login
+   Added TMSH detection to allow non root login
+   Other misc fixes
