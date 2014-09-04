@@ -26,7 +26,6 @@ class CertReport(object):
    @param log: The logging object from logsimple
       '''
       self.log = log
-      self.stop = False
       # Get times
       self.now = int( time.time() )
       self.thirty_days = self.now + 2592000
@@ -90,8 +89,7 @@ class CertReport(object):
       except:
          e = sys.exc_info()[1]
          self.log.critical('Email prepare - %s' % e)
-         self.stop = True
-         return 
+         raise
       
       # Convert unicode into str
       self.log.debug('Email prepare, convert unicode.')
@@ -117,8 +115,7 @@ class CertReport(object):
       except:
          e = sys.exc_info()[1]
          self.log.critical('Can\'t get key from keystore - %s' % e)
-         self.stop = True
-         return
+         raise
       
       # Decrypting user password
       if self.email_set['login']:
@@ -130,8 +127,7 @@ class CertReport(object):
          except:
             e = sys.exc_info()[1]
             self.log.critical('Can\'t decrypt email login password - %e' % e)
-            self.stop = True
-            return         
+            raise
       
       # build device dict
       self.log.debug('Email prepare, building device list.')
@@ -255,11 +251,6 @@ table.title th {
       '''
    Connects to the email server and send message.
       '''
-      # Did we encounter a previous error ?
-      if self.stop:
-         self.log.critical('Email send, encountered previous error. Cant send email.')
-         return
-      
       # Connect to server
       self.log.debug('Email send, connecting to email server')
       try:

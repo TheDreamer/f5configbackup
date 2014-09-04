@@ -23,7 +23,6 @@ class CertReconcile(object):
    @param log: The logging object from logsimple
       '''
       self.log = log
-      self.stop = False
    
    def prepare(self):
       '''
@@ -38,8 +37,7 @@ class CertReconcile(object):
       except:
          e = sys.exc_info()[1]
          self.log.critical('Cert prepare, %s' % e)
-         self.stop = True
-         return 
+         raise
       
       # Get list of devices from cert DBs
       self.log.debug('Cert prepare, getting distinct devices that have certs in DB.')
@@ -120,12 +118,6 @@ class CertReconcile(object):
    Write cert data changes to the DB that was determined by prepare command.
       '''
       self.log.debug('Starting cert reconciliation.')
-      
-      # Did we encounter a previous error ?
-      if self.stop:
-         self.log.critical('Certs reconcile, encountered previous error. Cant send email.')
-         return
-      
       try:
          # Connect to DB
          self.log.debug('Certs reconcile, connecting to DB.')
