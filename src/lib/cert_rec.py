@@ -23,6 +23,7 @@ class CertReconcile(object):
    @param log: The logging object from logsimple
       '''
       self.log = log
+      self.stop = False
    
    def prepare(self):
       '''
@@ -36,8 +37,8 @@ class CertReconcile(object):
          dbc = db.cursor()
       except:
          e = sys.exc_info()[1]
-         print e
          self.log.critical('Cert prepare, %s' % e)
+         self.stop = True
          return 
       
       # Get list of devices from cert DBs
@@ -57,6 +58,8 @@ class CertReconcile(object):
       self.log.debug('Cert prepare, common devices: %s.' % str(common_dev) )
       
       #  Get all certs from common device from both tables
+      self.add_certs = []
+      self.del_certs = []
       if len(common_dev) > 0:
          sql_where = str(common_dev.pop())
          for i in common_dev:
@@ -76,7 +79,6 @@ class CertReconcile(object):
          # from certs_tmp to certs DB
          self.log.debug('Cert prepare, getting list of certs from ' + 
                         'certs_temp table the need to be copied.')
-         self.add_certs = []
          for dev in certs_tmp.keys():
             for cert in certs_tmp[dev].keys():
                try:
@@ -91,7 +93,6 @@ class CertReconcile(object):
          # to be delete from certs DB
          self.log.debug('Cert prepare, getting list of certs from ' + 
                         'certs table the need to be deleted.')
-         self.del_certs = []
          for dev in certs.keys():
             if len(certs[dev]):
                self.del_certs.extend(certs[dev].values())
@@ -119,6 +120,12 @@ class CertReconcile(object):
    Write cert data changes to the DB that was determined by prepare command.
       '''
       self.log.debug('Starting cert reconciliation.')
+      
+      # Did we encounter a previous error ?
+      if self.stop:
+         self.log.critical('Certs reconcile, encountered previous error. Cant send email.')
+         return
+      
       try:
          # Connect to DB
          self.log.debug('Certs reconcile, connecting to DB.')

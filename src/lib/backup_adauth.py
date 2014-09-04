@@ -12,7 +12,8 @@ import logsimple
 
 # Default action for uncaught errors
 def execption_hook(type,value,tb):
-   exception = open('/opt/f5backup/log/auth.core','w',0)
+   crash_time = int(time.time())
+   exception = open('/opt/f5backup/log/auth.trace-%d' % crash_time,'w',0)
    exception.write('Traceback (most recent call last):\n')
    exception.write( ''.join(traceback.format_tb(tb)) )
    exception.write( type.__name__ + ': ' + str(value) + '\n')

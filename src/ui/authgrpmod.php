@@ -30,45 +30,45 @@ $groups = $sth->fetchAll();
 
 // Reorder group function
 function grp_reorder ($db) {
-	// Get new group list
-	$sth = $db->query("SELECT ID,ORD,NAME FROM AUTHGROUPS ORDER BY ORD");
-	$sth->execute();
-	$groups = $sth->fetchAll();
+   // Get new group list
+   $sth = $db->query("SELECT ID,ORD,NAME FROM AUTHGROUPS ORDER BY ORD");
+   $sth->execute();
+   $groups = $sth->fetchAll();
 
-	$count = 1;
-	$db->beginTransaction();
-	// Loop through all devices and reorder
-	foreach ($groups as $i) {
-		$sth = $db->prepare("UPDATE AUTHGROUPS SET ORD = ? WHERE ID = ?");
-		$sth->bindParam(1,$count); 
-		$sth->bindParam(2,$i['ID']); 
-		$sth->execute();
-		$count ++;
-	};
-	$db->commit();
+   $count = 1;
+   $db->beginTransaction();
+   // Loop through all devices and reorder
+   foreach ($groups as $i) {
+      $sth = $db->prepare("UPDATE AUTHGROUPS SET ORD = ? WHERE ID = ?");
+      $sth->bindParam(1,$count); 
+      $sth->bindParam(2,$i['ID']); 
+      $sth->execute();
+      $count ++;
+   };
+   $db->commit();
 };
 
 //Which group mod page is this ?
 if ( isset($_GET['page'])) {
-	if ( $_GET["page"] == "Delete") {
-		include ("include/authgrp_delete.php");
-	} elseif ( $_GET["page"] == "Add") {
-		include ("include/authgrp_add.php");
-	};
+   if ( $_GET["page"] == "Delete") {
+      include ("include/authgrp_delete.php");
+   } elseif ( $_GET["page"] == "Add") {
+      include ("include/authgrp_add.php");
+   };
 } elseif ( isset($_GET['order'])) {
-	include ("include/authgrp_order.php");
+   include ("include/authgrp_order.php");
 } else {
-	// if none, redirect to devices page
-	header("Location: /authgrp.php"); 
-	die;
+   // if none, redirect to devices page
+   header("Location: /authgrp.php"); 
+   die;
 };
 
 ?>
-	<div id="pagelet_title">
-		<a href="settings.php">Settings</a> > 
-		<a href="authgrp.php"> Auth Groups</a> >
-		<?= " $title" ?>
-	</div>
+   <div id="pagelet_title">
+      <a href="settings.php">Settings</a> > 
+      <a href="authgrp.php"> Auth Groups</a> >
+      <?= " $title" ?>
+   </div>
 <?
 
 echo $contents;

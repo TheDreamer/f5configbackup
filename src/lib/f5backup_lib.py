@@ -274,9 +274,10 @@ def main():
    except:
       e = sys.exc_info()[1]
       log.critical('Can\'t open database - %s' % e)
+      log.critical('Terminating backup job.')
       log.close()
-      del log,fh,date
-      raise BackupError('Can\'t open database - %s' % e)
+      raise BackupError('Can\'t connect to DB - %s' % e)
+
    
    dbc = db.cursor()
    
@@ -302,9 +303,9 @@ def main():
    except:
       e = sys.exc_info()[1]
       log.critical('Can\'t get credentials from DB - %s' % e)
+      log.critical('Terminating backup job.')
       job.add_error()
       log.close()
-      del log,fh,job,date,dbc,db
       raise BackupError('Can\'t get credentials from DB - %s' % e)
    
    # Get backup settings from DB

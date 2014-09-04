@@ -13,7 +13,8 @@ import certmail
 
 # Default action for uncaught errors
 def execption_hook(type,value,tb):
-   exception = open('/opt/f5backup/log/backupd.core','w',0)
+   crash_time = int(time.time())
+   exception = open('/opt/f5backup/log/backupd.trace-%d' % crash_time,'w',0)
    exception.write('Traceback (most recent call last):\n')
    exception.write( ''.join(traceback.format_tb(tb)) )
    exception.write( type.__name__ + ': ' + str(value) + '\n')
@@ -115,40 +116,60 @@ class f5backup():
             try:
                f5backup_lib.main()
             except f5backup_lib.BackupError as e:
-               self.log.error('An error has occured - %s' % e[1])
+               # If there is an error skip all else
+               self.log.error('An error has occured with the backup job - %s' % e)
+               self.log.error('Please fix issue before resuming.')
+               time.sleep(61)
+               continue
             self.log.info('Backup job completed.')
             
             # Reconcile certs
             self.log.info('Starting cert reconcile.')
-            reconcile = cert_rec.CertReconcile(self.log)
-            reconcile.prepare()
-            reconcile.reconcile()
-            del reconcile
+            try:
+               reconcile = cert_rec.CertReconcile(self.log)
+               reconcile.prepare()
+               reconcile.reconcile()
+               del reconcile
+            except:
+               # If there is an error skip all else
+               e = sys.exc_info()[1]
+               self.log.error('An error has occurred with cert reconciling - %s' % e)
+               self.log.error('Please fix issue before resuming.')
+               time.sleep(61)
+               continue
             self.log.info('Completed cert reconcile.')
             
             #Email cert report
             self.log.info('Preparing cert report for email.')
-            email = self.email_time()
-            # Are reports turned on ?
-            if email['send']:
-               if email['daily']:
-                  # If report interval is daily send report
-                  report = certmail.CertReport(self.log)
-                  report.prepare()
-                  report.send()
-                  self.log.info('Cert report sent.')
-               else:
-                  # Otherwise check day
-                  if email['on_day'] == time.localtime()[6]:
+            try:
+               email = self.email_time()
+               # Are reports turned on ?
+               if email['send']:
+                  if email['daily']:
+                     # If report interval is daily send report
                      report = certmail.CertReport(self.log)
                      report.prepare()
                      report.send()
                      self.log.info('Cert report sent.')
                   else:
-                     self.log.debug('No report for today.')
-            else:
-               self.log.info('Email reports turned off.')
-            
+                     # Otherwise check day
+                     if email['on_day'] == time.localtime()[6]:
+                        report = certmail.CertReport(self.log)
+                        report.prepare()
+                        report.send()
+                        self.log.info('Cert report sent.')
+                     else:
+                        self.log.info('No report for today.')
+               else:
+                  self.log.info('Email reports turned off.')
+            except:
+               # If there is an error skip all else
+               e = sys.exc_info()[1]
+               self.log.error('An error has occurred with cert report email - %s' % e)
+               self.log.error('Please fix issue before resuming.')
+               time.sleep(61)
+               continue
+               
             # wait 60 seconds after finishing to 
             # ensure job does not run twice
             time.sleep(60)

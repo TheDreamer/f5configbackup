@@ -151,14 +151,14 @@ $contents = <<<EOD
          <input type="text" name="subject" size="30" maxlength="50"  value="$subject">
       </td>
    </tr>
-   <tr class="odd">
+   <tr class="even">
       <td>Hide Acknowledged Cert<br /> in E-mail</td>
       <td>
          <input type="radio" name="hide" value="1" $hideY>Yes
          <input type="radio" name="hide" value="0" $hideN>No
       </td>
    </tr>
-   <tr class="even">
+   <tr class="odd">
       <td>Interval</td>
       <td>
          <input type="radio" name="daily" value="1" $dailyY>Daily<br />
@@ -168,45 +168,45 @@ $day
          </select>
       </td>
    </tr>
-   <tr class="odd">
+   <tr class="even">
       <td>Use SSL?</td>
       <td>
          <input type="radio" name="tls" value="1" $tlsY>Yes <br />
          <input type="radio" name="tls" value="0" $tlsN>No (Not recommended if login required)
       </td>
    </tr>
-   <tr class="even">
+   <tr class="odd">
       <td>SMTP Server IP or FQDN</td>
       <td>
          <input type="text" name="server" size="15" maxlength="50"  value="$server">
       </td>
    </tr>
-   <tr class="odd">
+   <tr class="even">
       <td>Server Port</td>
       <td>
          <input type="text" name="port" size="6" maxlength="6"  value="$port">
       </td>
    </tr>
-   <tr class="even">
+   <tr class="odd">
       <td>Does server require login?</td>
       <td>
          <input type="radio" name="login" value="1" $loginY>Yes <br />
          <input type="radio" name="login" value="0" $loginN>No
       </td>
    </tr>
-   <tr class="odd">
+   <tr class="even">
       <td>Email Login User</td>
       <td>
          <input type="text" name="login_user" size="25" maxlength="100"  value="$login_user">
       </td>
    </tr>
-   <tr class="even">
+   <tr class="odd">
       <td>Email Login Password</td>
       <td>
          <input type="password" name="password" class="input" size="10" maxlength="50" value="nochange">
       </td>
    </tr>
-   <tr class="odd">
+   <tr class="even">
       <td>Confirm Password</td>
       <td>
          <input type="password" name="password2" class="input" size="10" maxlength="50" value="nochange">

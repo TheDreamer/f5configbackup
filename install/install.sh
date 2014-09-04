@@ -9,15 +9,15 @@ echo -e "Starting installation of the Backup Program.\n"
 
 # ------------- Check for root install -------------
 if [ $(whoami) != "root" ]; then
-	echo "Not root user. Must be root user or sudo."
-	exit
+   echo "Not root user. Must be root user or sudo."
+   exit
 fi
 
 # ------------- Check for python -------------
 PY=$(python -c "print 'python'")
 if [ "$PY" != "python" ]; then
-	echo -e "\nPython not installed. Please install and try again."
-	exit
+   echo -e "\nPython not installed. Please install and try again."
+   exit
 fi
 
 # ------------- Check python version -------------
@@ -32,9 +32,9 @@ else:
   print 'not'" | python)
 
 if [ "$PVER" != "yes" ]; then
-	echo 'Error: Your version of python is not compatible with this script!'
-	echo 'Must use python version 2.6 to 2.7'
-	exit
+   echo 'Error: Your version of python is not compatible with this script!'
+   echo 'Must use python version 2.6 to 2.7'
+   exit
 fi
 
 # ------------ Check for python modules -------------
@@ -55,35 +55,35 @@ ERROR=""
 NOT_INSTALLED=0
 
 for i in $MODULES ; do
-	RESULT=$(echo -e "try: \n  import $i\nexcept: \n  print 'not'" | python)
-	RESULT+="-in"     # prevents  unary operator expected error
-	if [ $RESULT == "not-in" ]; then
-		ERROR+="$i is not installed. Please install before continuing.\n"
-		(( NOT_INSTALLED++ ))
-	else
-		echo "  $i is installed."
-	fi
+   RESULT=$(echo -e "try: \n  import $i\nexcept: \n  print 'not'" | python)
+   RESULT+="-in"     # prevents  unary operator expected error
+   if [ $RESULT == "not-in" ]; then
+      ERROR+="$i is not installed. Please install before continuing.\n"
+      (( NOT_INSTALLED++ ))
+   else
+      echo "  $i is installed."
+   fi
 done
 
 # Exit if module is not installed
 if [ $NOT_INSTALLED != 0 ] ; then 
-	echo -e "\n\n$ERROR"
-	exit
+   echo -e "\n\n$ERROR"
+   exit
 fi
 echo "Python modules are good!"
 
 # ------------ SQLite3 installation check -----------------------------------
 sql=`sqlite3 -version 2> /dev/null`
 if [ -z $sql ]; then
-	echo -e "\nSqllite not installed. Please install and try again.\n"
-	exit
+   echo -e "\nSqllite not installed. Please install and try again.\n"
+   exit
 fi
 # ------------ Apache installation check -----------------------------------
 echo -e "\nChecking for Apache."
 APACHE=$(apachectl -v 2> /dev/null | grep version | cut -d : -f2)
 if [ -z "$APACHE" ]; then 
-	echo -e 'Apache not installed! Please install.'
-	exit
+   echo -e 'Apache not installed! Please install.'
+   exit
 fi
 echo -e " Version info - $APACHE"
 
@@ -91,8 +91,8 @@ echo -e " Version info - $APACHE"
 echo -e "\nChecking for mod_ssl in apache."
 SSL=$(apachectl -M 2> /dev/null | grep ssl)
 if [ -z "$SSL" ]; then 
-	echo -e " Mod SSL not installed! Please install."
-	exit
+   echo -e " Mod SSL not installed! Please install."
+   exit
 fi
 echo -e " Mod SSL is installed.\n"
 
@@ -100,14 +100,14 @@ echo -e " Mod SSL is installed.\n"
 echo -e "Checking for PHP."
 PHP=$(php -v 2> /dev/null | sed q | cut -d ' ' -f 1-2)
 if [ -z "$PHP" ]; then
-	echo -e ' PHP is not installed! Please install.'
-	exit
+   echo -e ' PHP is not installed! Please install.'
+   exit
 fi
 echo -e " Version - $PHP"
 MOD_PHP=$(apachectl -M 2> /dev/null | grep php)
 if [ -z "$MOD_PHP" ]; then 
-	echo -e ' Mod PHP not installed! Please install.'
-	exit
+   echo -e ' Mod PHP not installed! Please install.'
+   exit
 fi
 echo -e " Mod PHP is installed."
 
@@ -115,8 +115,8 @@ echo -e " Mod PHP is installed."
 echo -e "\nChecking for PHP PDO SQLite driver."
 PDO=$(php -m 2> /dev/null | grep pdo_sqlite)
 if [ -z "$PDO" ]; then
-	echo -e " PDO_Sqlite is not installed! Please install."
-	exit
+   echo -e " PDO_Sqlite is not installed! Please install."
+   exit
 fi
 echo -e " PDO_Sqlite is installed."
 
@@ -133,7 +133,7 @@ mkdir $BASE_DIR/pid
 
 #------------- Copy files -------------
 echo -e "\nCopying files to $BASE_DIR."
-cp -R f5backup/* $BASE_DIR
+cp -R src/* $BASE_DIR
 
 #------------- Create f5ackup user -------------
 echo -e "\nCreating user \"f5backup\"."
@@ -166,11 +166,12 @@ cp $PHP_CONF $PHP_CONF.orig
 cp php.ini $PHP_CONF
 
 #------------- Create DB -------------
-######################## add new DB for ui -----------------------------*************--------------
-echo -e "\nCreating DB file $BASE_DIR/db/main.db"
+echo -e "\nCreating DB files."
 
 echo > $BASE_DIR/db/main.db
-cat db.txt | sqlite3 $BASE_DIR/db/main.db
+echo > $BASE_DIR/db/ui.db
+cat maindb.txt | sqlite3 $BASE_DIR/db/main.db
+cat uidb.txt | sqlite3 $BASE_DIR/db/ui.db
 
 #------------- Change file ownership -------------
 echo -e "\nSetting directory ownership."
@@ -196,6 +197,7 @@ chmod 0770 $BASE_DIR/redirect/*
 chmod -R 0660 $BASE_DIR/ui/*
 chmod 0770 $BASE_DIR/ui/*.php
 chmod -R 0770 $BASE_DIR/ui/include/
+chmod 0700 $BASE_DIR/passwd.sh
 
 #------------- Change folder permissions -------------
 echo -e "\nSetting directory permissions."
@@ -218,13 +220,12 @@ chcon -R --type=httpd_sys_content_t $BASE_DIR/devices
 chcon -R --type=httpd_sys_content_t $BASE_DIR/ui 
 chcon -R --type=httpd_sys_content_t $BASE_DIR/redirect
 chcon -R --type=httpd_sys_content_t $BASE_DIR/log
-chcon -R --type=httpd_sys_content_t $BASE_DIR/log
 setsebool -P httpd_can_network_connect 1
 
 #------------- Inint scripts -------------------
 echo -e "\nCopying init scripts."
-cp backupapi.sh /etc/init.d/backupapi
-cp f5backup.sh /etc/init.d/f5backup
+cp backupapi /etc/init.d/backupapi
+cp f5backup /etc/init.d/f5backup
 
 chmod u+x /etc/init.d/backupapi
 chmod u+x /etc/init.d/f5backup
@@ -237,6 +238,6 @@ chkconfig backupapi on
 chkconfig httpd on
 
 #********************** ALL DONE ***********************
-echo -e "\nInstallation completed."	
+echo -e "\nInstallation completed."   
 
 

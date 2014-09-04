@@ -22,25 +22,26 @@ include("include/header.php");
 include("include/menu.php");
 
 //Which device mod page is this ?
+$contents = '';
 switch ( $_GET["page"] ) {
-	case "Delete" :
-		include ("include/device_delete.php");
-		break;
-	case "Add" :
-		include ("include/device_add.php");
-		break;
-	default:
-		// if none, redirect to devices page
-		header("Location: /devices.php"); 
-		die;
+   case "Delete" :
+      include ("include/device_delete.php");
+      break;
+   case "Add" :
+      include ("include/device_add.php");
+      break;
+   default:
+      // if none, redirect to devices page
+      header("Location: /devices.php"); 
+      die;
 };
 
 // Page HTML
 ?>
-	<div id="pagelet_title">
-		<a href="devices.php">F5 Devices</a> <? if ( isset($title) ) {echo "> $title";} ?> 
-	</div>
-	<div id="pagelet_body">
+   <div id="pagelet_title">
+      <a href="devices.php">F5 Devices</a> <? if ( isset($title) ) {echo "> $title";} ?> 
+   </div>
+   <div id="pagelet_body">
 <?
 echo $contents;
 
