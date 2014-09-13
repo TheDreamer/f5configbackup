@@ -30,8 +30,8 @@ class LogSimple(object):
       obj.critical(<str>)
    
    Example usage single file -
-      # Create logging object for single unlimited file logging level 
-      # of WARNING and local time
+      # Create logging object for single unlimited file,
+      # logging level of WARNING and using local time
       log = SimpleLog('test.log')
       log.setlevel('WARNING')
       

@@ -1,0 +1,96 @@
+Appliance check list
+
+#### Root dir permissions
+chmod -R o-rwx /root/
+chmod -R g-rwx /root/
+
+### random password ###
+openssl rand -base64 129 | tr -d '\n'
+
+#Password hash
+authconfig --passalgo=sha512 --update
+
+## NTP ##
+chkconfig --list | grep ntp
+
+### sudoers ####
+console        ALL=(ALL)       NOPASSWD: ALL
+
+### sshd ###
+Port 5222
+PermitRootLogin no
+Banner /etc/issue
+
+### issue ###
+WARNING: Unauthorized access to this system is forbidden
+and will be prosecuted by law. By accessing this system,
+you agree that your actions may be monitored if
+unauthorized usage is suspected.
+
+### bashrc ###
+PATH=$PATH:/opt/appliance
+
+sudo chown -R console:console /opt/appliance/
+
+###############################
+# Sanitize
+#############################
+
+#Shutdown services 
+service httpd stop
+service backupapi stop
+service f5backup stop
+
+chkconfig f5backup off
+chkconfig backupapi off
+chkconfig httpd off
+
+# Delete crypto keys
+rm -rfv /etc/ssh/*key*
+rm -vf /opt/f5backup/.keystore/*
+
+# Delete
+rm -f /etc/udev/rules.d/70-persistent-net.rules
+
+# clear f5backup DB
+echo > /opt/f5backup/db/main.db
+cat ~/db.txt | sqlite3 /opt/f5backup/db/main.db
+
+# clear f5backup folders
+rm -vrf /opt/f5backup/devices/*
+rm -vrf /opt/f5backup/log/*
+
+# Delete all history and logs
+
+unset HISTFILE
+echo > /home/console/.bash_history
+echo > /root/.bash_history
+
+for i in $(find /var/log/ -type f); do
+	echo > $i
+done
+
+find /var/log/ -type f | grep -E '*\-20*' | xargs rm -vf
+find /var/log/ -name "*-*" | xargs rm -vf
+
+# Write firstboot file
+touch /opt/appliance/firstboot
+
+###############################
+# scripted user setup
+###############################
+Dir - /opt/appliance 
+Check for first boot file
+if yes -
+	Ask user to accept EULA
+	Regenerate root password and lock
+	Force reset of console password
+	Regenerate apache SSL cert	
+Set hostname
+Set domain name & DNS servers
+set IP address
+Set NTP servers 
+Set timezone - done
+
+
+

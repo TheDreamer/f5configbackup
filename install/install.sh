@@ -48,6 +48,7 @@ sqlite3
 flask
 bigsuds
 M2Crypto
+ldap
 "
 
 # Loop through module list and break if module not present

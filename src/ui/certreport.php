@@ -152,7 +152,7 @@ $contents = <<<EOD
       </td>
    </tr>
    <tr class="even">
-      <td>Hide Acknowledged Cert<br /> in E-mail</td>
+      <td>Hide Acknowledged Certs<br /> in E-mail</td>
       <td>
          <input type="radio" name="hide" value="1" $hideY>Yes
          <input type="radio" name="hide" value="0" $hideN>No
