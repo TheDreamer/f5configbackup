@@ -60,6 +60,11 @@ if (isset($_GET["id"]) && is_numeric($_GET["id"])) {
       try {
          // Update ack
          if ( $ack != $_POST['ack'] ) {
+            // RBAC check
+            if ( $_SESSION['role'] != 1 ) {
+               throw new Exception("Only administrators can acknowledge certs!"); 
+            };
+         
             // Is this input valid
             if (! in_array( $_POST['ack'],array(0,1)) ) {
                throw new Exception("Ack input not valid"); 

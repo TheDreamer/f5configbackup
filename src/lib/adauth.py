@@ -5,13 +5,33 @@ class ADAuth(object):
    '''
 ADAuth - class to authenticate a user via Active Directory
  by sAMAccountName and return group memberships 
+
+   Commands -
+   obj = ADAuth(args) - 
+   obj.Authenticate(args)
+   
+   Example usage -
+   test = adauth.ADAuth(
+                  10.0.0.10,
+                  binduser@acme.local,
+                  'test123',
+                  'acme.local',
+                  True)
+   test.Authenticate('someuser','password1')
+   
+   Would return if true -
+   [True, {<dict of group memberships>} ]  # if valid creds
+   [False, 'Invalid credentials']  # If invalid creds
+   [False, 'User not found']  # If user does not exist
+   
+   
    '''
    def __init__(self,server,binduser,bindpass,domain,tls=None):
       '''
    __init__(server,binduser,bindpass,domain,tls=None)
    
    @param server:   'str' The domain controller IP or FDQN
-   @param binduser: 'str' The user for the LDAP bind. Can be a normal domain user.
+   @param binduser: 'str' The user UPN for the LDAP bind. Can be a normal domain user.
    @param bindpass: 'str' password for binduser
    @param domain:   'str' The domain name in FQDN format (e.g. us.acme.local)
    @param tls:      'int' Make true for LDAPS (LDAP over SSL/TLS)
@@ -56,7 +76,11 @@ ADAuth - class to authenticate a user via Active Directory
       if search[0][0] == None: return {'found' : False, 'error' : 'User not found'}
       # Parse response to give dict of UPN and group membership
       upn = search[0][1]['userPrincipalName'][0]
-      memberOf = [ i for i in search[0][1]['memberOf'] ]
+      # Does user have any group memberships ?
+      if 'memberOf' in search[0][1]:
+         memberOf = [ i for i in search[0][1]['memberOf'] ]
+      else:
+         memberOf = 'None'
       ld.unbind()
       del ld
       return { 'found' : True ,'userPrincipalName' : upn, 'memberOf' : memberOf}

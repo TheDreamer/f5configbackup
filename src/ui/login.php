@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
          $login = 1;
          $role = 1;
       } else {
-         $error = "Bad username or password.";
+         $error = "Login Failed.";
       };
 
    } else {
@@ -66,7 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
             } else {
                $error = "Login Failed.";
             };
-   
             break;
          default:
             // Connect to DB
@@ -102,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
                if ($db_hash == $post_hash) {
                   $login = 1;
                } else {
-                  $error = "Bad username or password.";
+                  $error = "Login Failed.";
                };
                
             } catch (Exception $e) {

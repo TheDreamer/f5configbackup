@@ -132,4 +132,4 @@ def adauthenicate(user,passwd):
    else:
       authlog.error('No AD servers avilable.')
       authlog.close()
-      return [Fasle, 'No auth servers avilable.']
+      return [False, 'No auth servers avilable.']
