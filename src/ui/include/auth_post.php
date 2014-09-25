@@ -36,17 +36,19 @@ try {
    };
    
    //Update domain
-   if ($_POST['domain'] != $domain ) {
+   $domain_post = strip_tags($_POST['domain']);
+   if ( $domain_post != $domain ) {
       $sth = $dbcore->prepare("UPDATE AUTH SET DOMAIN = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['domain']); 
+      $sth->bindParam(1,$domain_post); 
       $sth->execute();
       $updates .= '"Domain" ';
    };
    
    //Update auth user
-   if ($_POST['user'] != $authacct ) {
+   $user_post = strip_tags($_POST['user']);
+   if ( $user_post != $authacct ) {
       $sth = $dbcore->prepare("UPDATE AUTH SET AUTHACCT = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['user']); 
+      $sth->bindParam(1,$user_post); 
       $sth->execute();
       $updates .= '"Auth User" ';
    };   
@@ -71,15 +73,17 @@ try {
    };
 
    // Update servers
-   if ( $_POST['server1'] != $server1 || $_POST['server2'] != $server2 ) {
+   $server1_post = $_POST['server1'];
+   $server2_post = $_POST['server2'];
+   if ( $server1_post != $server1 || $server2_post != $server2 ) {
       // Server 1
       $sth = $dbcore->prepare("UPDATE AUTHSERVERS SET SERVER = ?, TIMEDOWN = 0 WHERE ID = '1'");
-      $sth->bindParam(1,$_POST['server1']); 
+      $sth->bindParam(1,$server1_post); 
       $sth->execute();
       
       // Server 2
       $sth = $dbcore->prepare("UPDATE AUTHSERVERS SET SERVER = ?, TIMEDOWN = 0 WHERE ID = '2'");
-      $sth->bindParam(1,$_POST['server2']); 
+      $sth->bindParam(1,$server2_post); 
       $sth->execute();
       
       $updates .= '"Servers" ';
@@ -103,11 +107,11 @@ try {
    // If exception happens on any item new values  
    // will get thrown out (never makes it here)
    $mode = $_POST['mode'];
-   $domain = $_POST['domain'];
-   $authacct = $_POST['user'];
+   $domain = $domain_post;
+   $authacct = $user_post;
    $tls = $tls_tmp;
-   $server1 = $_POST['server1'];
-   $server2 = $_POST['server2'];   
+   $server1 = $server1_post;
+   $server2 = $server2_post;   
    
    $dbh->commit();
    $dbcore->commit();

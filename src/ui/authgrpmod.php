@@ -16,10 +16,6 @@ $permissions = array(1);
 include("include/session.php");
 include("include/dbconnect.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 $title = '';
 $contents = '';
 
@@ -27,6 +23,13 @@ $contents = '';
 $sth = $dbh->query("SELECT ID,ORD,NAME FROM AUTHGROUPS ORDER BY ORD");
 $sth->execute();
 $groups = $sth->fetchAll();
+
+// Build Role array
+$sth = $dbh->query("SELECT ID,NAME FROM ROLES ORDER BY ID");
+$sth->execute();
+foreach ($sth->fetchAll() as $role) {
+   $rolearray[$role['ID']] = $role['NAME'];
+};
 
 // Reorder group function
 function grp_reorder ($db) {
@@ -52,8 +55,10 @@ function grp_reorder ($db) {
 if ( isset($_GET['page'])) {
    if ( $_GET["page"] == "Delete") {
       include ("include/authgrp_delete.php");
+      $title3 = "Delete Auth Groups";
    } elseif ( $_GET["page"] == "Add") {
       include ("include/authgrp_add.php");
+      $title3 = "Add Auth Group";
    };
 } elseif ( isset($_GET['order'])) {
    include ("include/authgrp_order.php");
@@ -63,18 +68,12 @@ if ( isset($_GET['page'])) {
    die;
 };
 
-?>
-   <div id="pagelet_title">
-      <a href="settings.php">Settings</a> > 
-      <a href="authgrp.php"> Auth Groups</a> >
-      <?= " $title" ?>
-   </div>
-<?
-
-echo $contents;
-
-include("include/footer.php");
-
 // Close DB 
 $dbh = null;
+
+$title = "System";
+$title2 = "<a href=\"authgrp.php\"> Auth Groups</a>";
+
+// Page HTML
+include("include/framehtml.php");
 ?>

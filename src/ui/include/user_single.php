@@ -70,7 +70,7 @@ if (is_numeric($_GET["id"])) {
 	
 	
 	// Page body
-	$title = "<a href=\"users.php\">Users</a> > $name";
+	$title3 = $name;
 	if ( isset($post) && $post > 0 ) { 
 		$contents .= $post_message;
 	} ;

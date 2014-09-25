@@ -3,11 +3,6 @@ include("include/session.php");
 include("include/dbconnect.php");
 include("include/dbcore.php");
 
-
-# include common content
-include("include/header.php");
-include("include/menu.php");
-
 # Is this request for the main page?
 $main_page = 1;
 if (isset($_GET["id"])) { $main_page = 0 ;};
@@ -84,19 +79,13 @@ EOD;
 	};
 };
 
-# Page HTML
-?>
-	<div id="pagelet_title">
-		<a href="jobs.php">Backup Jobs</a>
-		<? if ( ! $main_page ) {echo "> $date";} ?>
-	</div>
-	<div id="pagelet_body">
-<?
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
-
 /* Close DB  */
 $dbcore = null;
+
+$title = "<a href=\"jobs.php\">Backup Jobs</a>";
+if ( ! $main_page ) { $title2 = $date; };
+
+
+// Page HTML
+include("include/framehtml.php");
 ?>

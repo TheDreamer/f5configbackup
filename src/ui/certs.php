@@ -3,10 +3,6 @@ include("include/session.php");
 include("include/dbconnect.php");
 include("include/dbcore.php");
 
-# include common content
-include("include/header.php");
-include("include/menu.php");
-
 
 # Make device array
 $sth = $dbcore->query("SELECT NAME,ID FROM DEVICES ORDER BY NAME");
@@ -41,7 +37,7 @@ if (isset($_GET["id"]) && is_numeric($_GET["id"])) {
    $sub_ou = $row['SUB_OU'];
    $sub_cn = $row['SUB_CN'];
    $ack =  $row['ACK'];
-   $title = $sub_cn;
+   $title2 = $sub_cn;
 
    // Cert expiration
    $expire = gmdate('Y-m-d H:i',$row['EXPIRE']);
@@ -165,19 +161,13 @@ EOD;
    };
    $contents .= "\t\t</table>\n";
 };
-# Page HTML
-?>
-   <div id="pagelet_title">
-      <a href="certs.php">Certificates </a><? if ( isset($title) ) {echo "> $title";} ?> 
-   </div> 
-   <div id="pagelet_body">
-<?
-echo $contents;
 
-echo "</div>";
-include("include/footer.php");
-
-/* Close DB  */
+// Close DB  
 $dbcore = null;
 $dbh = null;
+
+$title = "<a href=\"certs.php\">Certificates </a>";
+
+// Page HTML
+include("include/framehtml.php");
 ?>

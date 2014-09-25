@@ -13,6 +13,13 @@ function roleselect ($rarray,$selected) {
 	return $output;
 };
 
+// Build Role array
+$sth = $dbh->query("SELECT ID,NAME FROM ROLES ORDER BY ID");
+$sth->execute();
+foreach ($sth->fetchAll() as $role) {
+   $rolearray[$role['ID']] = $role['NAME'];
+};
+
 //Is ID numberic ?
 if ( is_numeric($id) ) {
 	// Get user from DB
@@ -67,7 +74,7 @@ if ( is_numeric($id) ) {
 	};
 
 	$roleselect = roleselect($rolearray,$role);
-	$title = "> <a href=\"authgrp.php\">Auth Groups</a> > $name";
+	$title3 = $name;
 	$contents = <<<EOD
 	$message
 	<form action="authgrp.php?id=$id" method="post">

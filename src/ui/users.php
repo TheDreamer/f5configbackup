@@ -16,10 +16,6 @@ $permissions = array(1);
 include("include/session.php");
 include("include/dbconnect.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 // Build role select options
 function roleselect ($rarray,$selected) {
 	$output = '';
@@ -32,6 +28,12 @@ function roleselect ($rarray,$selected) {
 	return $output;
 };
 
+// Build Role array
+$sth = $dbh->query("SELECT ID,NAME FROM ROLES ORDER BY ID");
+$sth->execute();
+foreach ($sth->fetchAll() as $role) {
+   $rolearray[$role['ID']] = $role['NAME'];
+};
 
 // Is this the default page ?
 if ( isset($_GET["page"]) ) {
@@ -43,9 +45,11 @@ if ( isset($_GET["page"]) ) {
 			break;
 		case "Delete" :
 			include ("include/user_delete.php");
+         $title3 = "Delete User";
 			break;
 		case "Add" :
 			include ("include/user_add.php");
+         $title3 = "Add User";
 			break;
 	};
 
@@ -93,18 +97,12 @@ EOD;
 EOD;
 };
 
-// Page HTML
-?>
-	<div id="pagelet_title">
-		<a href="settings.php">Settings</a> <? if ( isset($title) ) {echo "> $title";} ?> 
-	</div>
-	<div id="pagelet_body">
-<?
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
-
 // Close DB 
 $dbh = null;
+
+$title = "System";
+$title2 = "<a href=\"users.php\">Users </a>";
+
+// Page HTML
+include("include/framehtml.php");
 ?>

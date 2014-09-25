@@ -1,7 +1,4 @@
 <?php
-
-$title = "<a href=\"users.php\">Users</a> > Delete Users";;
-
 # Make user array
 $sth = $dbh->query("SELECT NAME,ID FROM USERS ORDER BY NAME");
 $sth->execute();

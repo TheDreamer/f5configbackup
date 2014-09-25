@@ -46,3 +46,4 @@ http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Places-network-ser
 http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Places-certificate-server-icon.png
 http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Categories-applications-system-icon.png
 http://icons.iconarchive.com/icons/oxygen-icons.org/oxygen/24/Actions-view-calendar-day-icon.png
+http://www.iconarchive.com/show/oxygen-icons-by-oxygen-icons.org/Status-dialog-information-icon.html

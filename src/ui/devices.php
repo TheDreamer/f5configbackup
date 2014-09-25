@@ -3,10 +3,6 @@ include("include/session.php");
 include("include/dbconnect.php");
 include("include/dbcore.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 // If id param is present show device details
 if ( isset($_GET["id"]) ) {
 	include ("include/device_single.php");
@@ -16,7 +12,7 @@ if ( isset($_GET["id"]) ) {
 	<table class="pagelet_table">
 		<tr class="pglt_tb_hdr">
 			<td>
-			<input type="checkbox" name="" value="" checked disabled="disabled">
+			<input type="checkbox" checked disabled="disabled">
 			</td>
 			<td>Name</td>
 			<td>IP</td>
@@ -53,20 +49,12 @@ EOD;
 EOD;
 };
 
-// Page HTML
-?>
-	<div id="pagelet_title">
-		<a href="devices.php">F5 Devices</a> <? if ( isset($title) ) {echo "> $title";} ?> 
-	</div>
-	<div id="pagelet_body">
-<?
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
-
 /* Close DB  */
 $dbh = null;
 $dbcore = null;
 
+$title = "<a href=\"devices.php\">F5 Devices</a>";
+
+// Page HTML
+include("include/framehtml.php");
 ?>

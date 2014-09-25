@@ -1,7 +1,4 @@
 <?php
-
-$title = "Add Auth Group";
-
 // If post then update DB
 if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
 
@@ -19,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
       
       // Are there any blank fields ?
       foreach ($_POST as $key => $value) {
-         if ($value == '') {
+         if (strip_tags($value) == '') {
             throw new Exception("Values cannot be empty! - $key");
          }
       };
@@ -55,13 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
       $sth = $dbh->prepare("INSERT INTO AUTHGROUPS ('ORD','NAME','STRING','ROLE') 
                            VALUES(:order,:name,:string,:role)");
       $sth->bindValue(':order',$order); 
-      $sth->bindValue(':name',$_POST["name"]); 
-      $sth->bindValue(':string',$_POST["string"]); 
+      $sth->bindValue(':name', strip_tags($_POST["name"]) ); 
+      $sth->bindValue(':string', strip_tags($_POST["string"]) ); 
       $sth->bindValue(':role',$_POST["role"]); 
       $sth->execute();
       $dbh->commit();
 
-      $contents = "<p>Created auth group: ". $_POST["name"] ."</p>";
+      $contents = "<p>Created auth group: ". strip_tags($_POST["name"]) ."</p>";
       grp_reorder ($dbh);
    
    } catch (Exception $e) {
@@ -91,6 +88,13 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
          $output .= "<option value=\"$key\" $select>$value</option>";
       };
       return $output;
+   };
+
+   // Build Role array
+   $sth = $dbh->query("SELECT ID,NAME FROM ROLES ORDER BY ID");
+   $sth->execute();
+   foreach ($sth->fetchAll() as $role) {
+      $rolearray[$role['ID']] = $role['NAME'];
    };
 
    $roleselect = roleselect($rolearray,$role);

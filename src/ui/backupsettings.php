@@ -17,10 +17,6 @@ include("include/session.php");
 include("include/dbconnect.php");
 include("include/dbcore.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 // Get backup settings
 $sth = $dbcore->query("SELECT NAME,VALUE FROM BACKUP_SETTINGS_INT");
 $sth->execute();
@@ -100,18 +96,15 @@ $contents = <<<EOD
 	<input type="submit"name="submit"value="Update">
 	</form>\n
 EOD;
-?>
-	<div id="pagelet_title">
-		<a href="settings.php">Settings</a> > Backup Settings 
-	</div>
-	<div id="pagelet_body">
-<?
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
 
 // Close DB 
 $dbh = null;
 $dbclose = null;
+
+$title = "System";
+$title2 = "<a href=\"backupsettings.php\">Backup Settings </a>";
+
+
+// Page HTML
+include("include/framehtml.php");
 ?>

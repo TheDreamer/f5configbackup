@@ -17,18 +17,16 @@ include("include/session.php");
 include("include/dbconnect.php");
 include("include/dbcore.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 //Which device mod page is this ?
 $contents = '';
 switch ( $_GET["page"] ) {
    case "Delete" :
       include ("include/device_delete.php");
+      $title2 = "Delete Devices";
       break;
    case "Add" :
       include ("include/device_add.php");
+      $title2 = "Add Devices";
       break;
    default:
       // if none, redirect to devices page
@@ -36,20 +34,12 @@ switch ( $_GET["page"] ) {
       die;
 };
 
-// Page HTML
-?>
-   <div id="pagelet_title">
-      <a href="devices.php">F5 Devices</a> <? if ( isset($title) ) {echo "> $title";} ?> 
-   </div>
-   <div id="pagelet_body">
-<?
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
-
 /* Close DB  */
 $dbh = null;
 $dbcore = null;
 
+$title = "<a href=\"devices.php\">F5 Devices</a>";
+
+// Page HTML
+include("include/framehtml.php");
 ?>

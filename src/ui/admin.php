@@ -16,10 +16,6 @@ $permissions = array(1);
 include("include/session.php");
 include("include/dbconnect.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 include("include/functions.php");
 $contents = '';
 
@@ -66,17 +62,9 @@ $contents .= <<<EOD
 	</form>\n
 EOD;
 
+$title = "System";
+$title2 = "<a href=\"admin.php\">Admin Password</a>";
 
 // Page HTML
-?>
-	<div id="pagelet_title">
-		<a href="settings.php">Settings</a> > Admin Password
-	</div>
-	<div id="pagelet_body">
-<?
-
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
+include("include/framehtml.php");
 ?>

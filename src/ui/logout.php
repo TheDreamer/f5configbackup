@@ -9,11 +9,12 @@ if(isset( $_SESSION['active'])) {
 	session_destroy();
 }
 
-// Get page that send to login and add as param of form action url
-$URL = "";
-if (isset($_GET["page"])) {
-  $URL="?page=".urlencode($_GET["page"]);
-};
+echo <<<EOD
+<html>
+<script>
+parent.window.location = "/login.php";
+</script>
+</html>  
+EOD;
 
-header("Location: /login.php$URL");
 ?>

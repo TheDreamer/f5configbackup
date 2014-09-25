@@ -1,6 +1,4 @@
 <?php
-$title = "Delete Auth Groups";
-
 # Make group array
 foreach ($groups as $i) {
 	$grparray[$i['ID']] = $i['NAME'];

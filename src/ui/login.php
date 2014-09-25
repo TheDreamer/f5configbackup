@@ -117,7 +117,6 @@ if (isset($login) ) {
    $sth = $dbh->prepare("SELECT VALUE FROM SETTINGS_INT WHERE NAME = 'timeout'");
    $sth->execute();
    $timeout = $sth->fetchColumn();
-
    // Set session vars
    session_regenerate_id(true);
    $_SESSION['clientip'] = $_SERVER['REMOTE_ADDR'];
@@ -126,24 +125,14 @@ if (isset($login) ) {
    $_SESSION['time'] = time();
    $_SESSION['timeout'] = $timeout;
    $_SESSION['role'] = $role;
-   $location = "https://".$_SERVER['HTTP_HOST'].urldecode($_GET["page"]);
-   header("Location: $location");
+   header("Location: https://".$_SERVER['HTTP_HOST']);
    die;
 } else {
 // Otherwise give them the login page
-   // Get page that send to login and add as param of form action url
-   $URL = "";
-   if (isset($_GET["page"])) {
-     $URL="?page=".urlencode($_GET["page"]);
-   };
-
-   
    // Get MOTD from DB
    $sth = $dbh->prepare("SELECT MOTD FROM MOTD WHERE ID = 1");
    $sth->execute();
    $motd = $sth->fetchColumn();
-
-
 ?>
 <html>
 <head>
@@ -157,7 +146,7 @@ if (isset($login) ) {
    </div>
    <div id="body">
       <div id="form">
-         <form action="login.php<?=$URL?>" method="post">
+         <form action="login.php" method="post">
          <p>Username<br />
          <input type="text" name="username" class="input" autocomplete="off" maxlength="20">
          </p>

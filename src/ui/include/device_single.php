@@ -13,7 +13,6 @@ if (is_numeric($ID)) {
 	$cid = 0;
 	$last_date = 0;
 	$name = $row['NAME'];
-	$title = $name;
 	$ip = $row['IP'];
 	if ($row['CID_TIME'] > 0) {$cid = date('Y-m-d H:i:s',$row['CID_TIME']); };
 	$date_added = date('Y-m-d H:i:s',$row['DATE_ADDED']);
@@ -27,6 +26,7 @@ if (is_numeric($ID)) {
 	$serial = $row['SERIAL'];
 	$part = $row['ACT_PARTITION'];
 	
+	$title2 = $name;
 	$contents = <<<EOD
 <table class="pagelet_table">
 	<tr class="pglt_tb_hdr">

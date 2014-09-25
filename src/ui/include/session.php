@@ -10,8 +10,7 @@ if(!(isset( $_SESSION['active']))) {
             die;
       };
    };   
-   $location = "https://".$_SERVER['HTTP_HOST']."/login.php?page=".urlencode($_SERVER['REQUEST_URI']);
-   header("Location: $location");
+   header("Location: /logout.php"); 
    die();
 } elseif ( $_SESSION['clientip'] != $_SERVER['REMOTE_ADDR'] ) {
 // If users IP has changed
@@ -20,7 +19,7 @@ if(!(isset( $_SESSION['active']))) {
 // Check if the user is timed out
    if ( (time() - $_SESSION['time']) > $_SESSION['timeout'] ) { 
    // If current time - session time is > timeout, logout user   
-      header("Location: /logout.php?page=".urlencode($_SERVER['REQUEST_URI'])); 
+      header("Location: /logout.php"); 
    } else {
    // If not reset session time
       $_SESSION['time'] = time();
@@ -32,7 +31,7 @@ if ( isset($permissions) ) {
    if ( ! in_array($_SESSION['role'],$permissions) ) {
       // Redirect to index.php with error code if no match
       $page = urlencode(strtok($_SERVER["REQUEST_URI"],'?'));
-      header("Location: /index.php?error=403&page=$page");
+      header("Location: /main.php?error=403&page=$page");
       die;
    };
 };

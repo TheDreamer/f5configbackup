@@ -1,5 +1,4 @@
 <?php
-
 include("include/functions.php");
 
 // Update post processing
@@ -69,8 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Create") {
 		<input type="submit" name="change" value="Create">
 		</form>
 EOD;
-
 };
 
-$title = "<a href=\"users.php\">Users</a> > Create New User";
 ?>	

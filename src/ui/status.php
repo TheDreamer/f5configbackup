@@ -2,10 +2,6 @@
 include("include/session.php");
 include("include/dbconnect.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 // Get status details from internal web service
 require_once '/opt/f5backup/ui/include/PestJSON.php';
 function webstatus () {
@@ -28,11 +24,10 @@ function webstatus () {
 	};
 };
 
-?>
-	<div id="pagelet_title">
-		Status
-	</div>
-<?
-echo webstatus();
-include("include/footer.php");
+$contents = webstatus();
+
+$title = "Status";
+
+// Page HTML
+include("include/framehtml.php");
 ?>

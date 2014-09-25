@@ -16,15 +16,10 @@ $permissions = array(1);
 include("include/session.php");
 include("include/dbconnect.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 // Show me a specific group
 if ( isset($_GET["id"]) ) {
 	include ("include/authgrp_single.php");
 } else {
-	$title = "> Auth Groups";
 	// Get auth groups
 	$sth = $dbh->query("SELECT ID,NAME FROM AUTHGROUPS ORDER BY ORD");
 	$sth->execute();
@@ -88,18 +83,13 @@ EOD;
 EOD;
 
 };
-// Page HTML
-?>
-	<div id="pagelet_title">
-		<a href="settings.php">Settings</a> <?=$title?>
-	</div>
-	<div id="pagelet_body">
-<?
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
 
 // Close DB 
 $dbh = null;
+
+$title = "System";
+$title2 = "<a href=\"authgrp.php\">Auth Groups</a>";
+
+// Page HTML
+include("include/framehtml.php");
 ?>

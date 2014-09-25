@@ -17,10 +17,6 @@ include("include/session.php");
 include("include/dbconnect.php");
 include("include/dbcore.php");
 
-// include common content
-include("include/header.php");
-include("include/menu.php");
-
 // Get auth settings from core DB
 $sth = $dbcore->prepare("SELECT SEND_REPORT,SENDER,SENDER_TITLE,TO_MAIL,SUBJECT,HIDE_ACK,
                          DAILY,ON_DAY,TLS,SERVER,PORT,LOGIN,LOGIN_USER FROM EMAIL WHERE 
@@ -216,19 +212,14 @@ $day
    <input type="submit"name="submit"value="Update">
    </form> \n
 EOD;
-// Page HTML
-?>
-   <div id="pagelet_title">
-      <a href="settings.php">Settings</a> > Certificate Reports
-   </div>
-   <div id="pagelet_body">
-<?
-echo $contents;
-
-echo "</div>";
-include("include/footer.php");
 
 // Close DB 
 $dbh = null;
 $dbcore = null;
+
+$title = "System";
+$title2 = "<a href=\"certreport.php\">Certificate Reports </a>";
+
+// Page HTML
+include("include/framehtml.php");
 ?>
