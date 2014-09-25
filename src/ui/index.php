@@ -146,5 +146,5 @@ if ( isset($_COOKIE['LASTFRAME']) ) {
    </div>
 </div>
 </body>
-<script src="/scripts/backupscript.js"></script>
+<script src="/scripts/main.js"></script>
 </html> 
