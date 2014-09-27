@@ -1,0 +1,60 @@
+The Config Backup for F5 appliance  versions 3.0 and 3.1, being based on Centos 6.4/6.5, 
+has vulnerable bash versions and should be patched immediately.
+
+Note: CVE-2014-6271 is only partially resolved. Redhat (aka the upstream vendor) 
+is working on a patch for the new vulnerability CVE-2014-7169 that will soon after 
+reach the CentOS repository. When this is done you will need to run the update 
+again. However, run the update now as it will help fix the more serious issues!
+
+To patch your appliance login via an SSH session or the VMWare console with the 
+"console" username and run the following command -
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sudo yum -y update bash
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+After yum retrieves the update database, you should eventually see something like this -
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+==========================================================================================
+ Package           Arch               Version                 Repository              Size
+==========================================================================================
+Updating:
+ bash              x86_64             4.1.2-15.el6_5.1        updates                905 k
+
+Transaction Summary
+==========================================================================================
+Upgrade       1 Package(s)
+
+Total download size: 905 k
+Downloading Packages:
+bash-4.1.2-15.el6_5.1.x86_64.rpm                                         | 905 kB     00:00
+Running rpm_check_debug
+Running Transaction Test
+Transaction Test Succeeded
+Running Transaction
+  Updating   : bash-4.1.2-15.el6_5.1.x86_64                                             1/2
+  Cleanup    : bash-4.1.2-15.el6_4.x86_64                                               2/2
+  Verifying  : bash-4.1.2-15.el6_5.1.x86_64                                             1/2
+  Verifying  : bash-4.1.2-15.el6_4.x86_64                                               2/2
+
+Updated:
+  bash.x86_64 0:4.1.2-15.el6_5.1
+
+Complete!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+If you run the command and see the following you will need to clear to clear the yum metadata.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+No Packages marked for Update
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To clear the yum metadata you will need to run this command -
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sudo yum clean metadata
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Then re-run the update command -
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sudo yum -y update bash
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

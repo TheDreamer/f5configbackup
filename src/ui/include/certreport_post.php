@@ -32,33 +32,37 @@ try {
    };
    
    //Update sender
-   if ($_POST['sender'] != $sender ) {
+   $sender_post = strip_tags($_POST['sender']);
+   if ($sender_post != $sender ) {
       $sth = $dbcore->prepare("UPDATE EMAIL SET SENDER = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['sender']); 
+      $sth->bindParam(1,$sender_post); 
       $sth->execute();
       $updates .= '"Sender" ';
    };
    
    //Update sender title
-   if ($_POST['sender_title'] != $sender_title ) {
+   $sender_title_post = strip_tags($_POST['sender_title']);
+   if ($sender_title_post != $sender_title ) {
       $sth = $dbcore->prepare("UPDATE EMAIL SET SENDER_TITLE = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['sender_title']); 
+      $sth->bindParam(1,$sender_title_post); 
       $sth->execute();
       $updates .= '"Sender Title" ';
    };
 
    //Update recipients
-   if ($_POST['recipients'] != $recipients ) {
+   $recipients_post = strip_tags($_POST['recipients']) ;
+   if ($recipients_post != $recipients ) {
       $sth = $dbcore->prepare("UPDATE EMAIL SET TO_MAIL = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['recipients']); 
+      $sth->bindParam(1,$recipients_post); 
       $sth->execute();
       $updates .= '"Recipients" ';
    };   
 
    //Update subject
-   if ($_POST['subject'] != $subject ) {
+   $subject_post = strip_tags($_POST['subject']);
+   if ($subject_post != $subject ) {
       $sth = $dbcore->prepare("UPDATE EMAIL SET SUBJECT = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['subject']); 
+      $sth->bindParam(1,$subject_post); 
       $sth->execute();
       $updates .= '"Subject" ';
    };
@@ -120,9 +124,10 @@ try {
    };
    
    //Update email server
-   if ($_POST['server'] != $server ) {
+   $server_post = strip_tags($_POST['server']);
+   if ($server_post != $server ) {
       $sth = $dbcore->prepare("UPDATE EMAIL SET SERVER = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['server']); 
+      $sth->bindParam(1,$server_post); 
       $sth->execute();
       $updates .= '"SMTP Server" ';
    };
@@ -155,9 +160,10 @@ try {
    };   
  
    //Update login user
-   if ($_POST['login_user'] != $login_user ) {
+   $login_user_post = strip_tags($_POST['login_user']);
+   if ($login_user_post != $login_user ) {
       $sth = $dbcore->prepare("UPDATE EMAIL SET LOGIN_USER = ? WHERE ID = '0'");
-      $sth->bindParam(1,$_POST['login_user']); 
+      $sth->bindParam(1,$login_user_post); 
       $sth->execute();
       $updates .= '"Login User" ';
    };
@@ -185,18 +191,18 @@ try {
    // If exception happens on any item new values  
    // will get thrown out (never makes it here)
    $enabled = $_POST['enabled'];
-   $sender = $_POST['sender'];
-   $sender_title = $_POST['sender_title'];
-   $recipients = $_POST['recipients'];
-   $subject = $_POST['subject'];
+   $sender = $sender_post;
+   $sender_title = $sender_title_post;
+   $recipients = $recipients_post;
+   $subject = $subject_post;
    $hide = $_POST['hide'];
    $daily = $_POST['daily'];
    $on_day = $_POST['on_day'];
    $tls = $_POST['tls'];
-   $server = $_POST['server'];
+   $server = $server_post;
    $port = $_POST['port'];
    $login = $_POST['login'];
-   $login_user = $_POST['login_user'];
+   $login_user = $login_user_post;
     
    $dbcore->commit();
 } catch (Exception $e) {

@@ -18,14 +18,14 @@ include("include/dbconnect.php");
 
 // Build role select options
 function roleselect ($rarray,$selected) {
-	$output = '';
-	foreach ($rarray as $key=>$value) {
-		$select = '';
-		// Make the users current role selected
-		if ( $key == $selected ){$select = 'selected';} ;
-		$output .= "<option value=\"$key\" $select>$value</option>";
-	};
-	return $output;
+   $output = '';
+   foreach ($rarray as $key=>$value) {
+      $select = '';
+      // Make the users current role selected
+      if ( $key == $selected ){$select = 'selected';} ;
+      $output .= "<option value=\"$key\" $select>$value</option>";
+   };
+   return $output;
 };
 
 // Build Role array
@@ -37,63 +37,63 @@ foreach ($sth->fetchAll() as $role) {
 
 // Is this the default page ?
 if ( isset($_GET["page"]) ) {
-	// Which 
-	switch ( $_GET["page"] ) {
-		case "user" :
-		// Specific user page
-			include ("include/user_single.php");
-			break;
-		case "Delete" :
-			include ("include/user_delete.php");
+   // Which 
+   switch ( $_GET["page"] ) {
+      case "user" :
+      // Specific user page
+         include ("include/user_single.php");
+         break;
+      case "Delete" :
+         include ("include/user_delete.php");
          $title3 = "Delete User";
-			break;
-		case "Add" :
-			include ("include/user_add.php");
+         break;
+      case "Add" :
+         include ("include/user_add.php");
          $title3 = "Add User";
-			break;
-	};
+         break;
+   };
 
 } else {
-	// Default page
-	$title = "Users" ;
-	// Get list of users from DB
-	$sql = "SELECT NAME,ID,ROLE FROM USERS";
+   // Default page
+   $title = "Users" ;
+   // Get list of users from DB
+   $sql = "SELECT NAME,ID,ROLE FROM USERS";
 
-	// Build user table
-	$contents = <<<EOD
-	<form action="users.php" method="get">
-	<table class="pagelet_table">
-		<tr class="pglt_tb_hdr">
-			<td>
-				<input type="checkbox" name="" value="" checked disabled="disabled">
-			</td>
-			<td>Name</td>
-			<td>Role</td>
-		</tr> 
+   // Build user table
+   $contents = <<<EOD
+   <form action="users.php" method="get">
+   <table class="pagelet_table">
+      <tr class="pglt_tb_hdr">
+         <td>
+            <input type="checkbox" name="" value="" checked disabled="disabled">
+         </td>
+         <td>Name</td>
+         <td>Role</td>
+      </tr> 
 EOD;
 
-	// loop through array to make user table
-	$count = 1;
-	foreach ($dbh->query($sql) as $row) {
-		$name = $row['NAME'];
-		$id = $row['ID'];
-		$role = $rolearray[$row['ROLE']]; // Get name of role from array
-		$class = "even_ctr";
-		if ($count & 1 ) {$class = "odd_ctr";};
-		$contents .= <<<EOD
-		<tr class="$class">
-			<td><input type="checkbox" name="id[]" value="$id"></td>
-			<td><a href="users.php?page=user&id=$id">$name</a></td>
-			<td >$role</td>
-		</tr> 
+   // loop through array to make user table
+   $count = 1;
+   foreach ($dbh->query($sql) as $row) {
+      $name = $row['NAME'];
+      $id = $row['ID'];
+      $role = $rolearray[$row['ROLE']]; // Get name of role from array
+      $class = "even_ctr";
+      if ($count & 1 ) {$class = "odd_ctr";};
+      $contents .= <<<EOD
+      <tr class="$class">
+         <td><input type="checkbox" name="id[]" value="$id"></td>
+         <td><a href="users.php?page=user&id=$id">$name</a></td>
+         <td >$role</td>
+      </tr> 
 EOD;
-		$count++;
-	};
-	$contents .= <<<EOD
-	</table> 
-	<input type="submit" name="page" value="Add">
-	<input type="submit" name="page" value="Delete">
-	</form> 
+      $count++;
+   };
+   $contents .= <<<EOD
+   </table> 
+   <input type="submit" name="page" value="Add">
+   <input type="submit" name="page" value="Delete">
+   </form> 
 EOD;
 };
 

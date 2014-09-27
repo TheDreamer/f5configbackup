@@ -23,10 +23,10 @@ include("include/menu.php");
 
 // Page HTML
 ?>
-	<div id="pagelet_title">
-		<a href="template.php">Template</a>  
-	</div>
-	<div id="pagelet_body">
+   <div id="pagelet_title">
+      <a href="template.php">Template</a>  
+   </div>
+   <div id="pagelet_body">
 <?
 echo $contents;
 
