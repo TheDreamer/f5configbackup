@@ -124,20 +124,52 @@ CN=$sub_cn
    </form>\n
 EOD;
 } else {
+
+   // Are we doing a search ?
+   $search = '';
+   if (isset($_GET["searchaction"]) && $_GET["searchaction"] == 'Search') {
+      $search = strtolower( strip_tags($_GET["search"]) );
+   };
+
 // Else get all certs
    // If not present device list
-   $contents = "\t\t<table class=\"pagelet_table\">\n";
-   $contents .= "\t\t<tr class=\"pglt_tb_hdr\"><td>Cert Name</td><td>Device</td>";
-   $contents .= "<td>CN</td><td>Expiration (GMT)</td></tr>\n";
+   $contents = <<<EOD
+      <form action="certs.php" method="get">
+      <input type="text" name="search" size="20" maxlength="40" value="$search">
+      <input type="submit" name="searchaction" value="Search">
+      <input type="submit" name="searchaction" value="Reset Search">
+      </form>
+      <table class="pagelet_table">
+      <tr class="pglt_tb_hdr">
+         <td>Cert Name</td>
+         <td>Device</td>
+         <td>CN</td>
+         <td>Expiration (GMT)</td>
+      </tr>\n
+EOD;
 
-   // Get list of certs from DB
-   $sql = "SELECT ID,NAME,DEVICE,SUB_CN,EXPIRE FROM CERTS ORDER BY EXPIRE";
-    
-
+   // Get list of certs from DB, are we searching ?
+   if ( $search != '' ) {
+      $param = "%$search%";
+      $sth = $dbcore->prepare("SELECT ID,NAME,DEVICE,SUB_CN,EXPIRE FROM CERTS 
+                              WHERE NAME LIKE ? OR 
+                              SUB_CN LIKE ?
+                              ORDER BY EXPIRE;");
+    	$sth->bindParam(1,$param); 
+    	$sth->bindParam(2,$param); 
+   } else {
+      // If not get list
+      $sth = $dbcore->query("SELECT ID,NAME,DEVICE,SUB_CN,EXPIRE 
+                          FROM CERTS ORDER BY EXPIRE");
+   };
+   
+   $sth->execute();
+   $certs = $sth->fetchAll();
+   
    // loop through array to make cert table
    $count = 1;
    $time = time();
-   foreach ($dbcore->query($sql) as $row) {
+   foreach ( $certs as $row) {
       $id = $row['ID'];
       $name = $row['NAME'];
       $device = $row['DEVICE'];
@@ -155,7 +187,7 @@ EOD;
          $expire = "<strong class=\"warning\">$expire<strong>";
       };
       
-      $contents .= "\t\t<tr class=\"$class\"><td><a href=\"certs.php?id=$id\">$name</a>";
+      $contents .= "\t\t<tr class=\"$class\"><td><a href=\"certs.php?id=$id\">$name</a></td>";
       $contents .= "<td><a href=\"devices.php?page=device&id=$device\">$devname</a></td><td>$cn</td><td>$expire</td></tr>\n";
       $count++;
    };

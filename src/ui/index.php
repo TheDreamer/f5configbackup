@@ -125,8 +125,15 @@ if ( isset($_COOKIE['LASTFRAME']) ) {
          </li>
          <li><a href="/backupsettings.php" target="bodyframe">Backups</a></li>
          <li><a href="/certreport.php" target="bodyframe">Certificate Report</a></li>
-      </ul>
-   </div>
+         <li class="has-sub"><a>Logs</a>
+            <ul>
+               <li><a href="/logs.php?log=backupd" target="bodyframe">Backup Service</a></li>
+               <li><a href="/logs.php?log=auth" target="bodyframe">Authentication</a></li>
+               <li><a href="/logs.php?log=api" target="bodyframe">Internal API</a></li>
+            </ul>
+         </li>
+       </ul>
+  </div>
    
    </div>
    </td>

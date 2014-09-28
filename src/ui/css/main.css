@@ -9,6 +9,9 @@ body {
    height: 100%;
    font: 16px arial,helvetica,sans-serif;
 }
+form {
+   margin: 0;
+}
 /* Misc properties */
 .error  {
    color: #FF0000;

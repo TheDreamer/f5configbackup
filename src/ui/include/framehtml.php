@@ -14,6 +14,7 @@ setcookie("LASTFRAME",$_SERVER['REQUEST_URI'],0,Null,Null,1);
    </div> 
    <div id="pagelet_body">
 <?=$contents;?>
+   <br />
    </div>
 </body>
 <script>

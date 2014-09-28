@@ -13,13 +13,6 @@ function roleselect ($rarray,$selected) {
 	return $output;
 };
 
-// Build Role array
-$sth = $dbh->query("SELECT ID,NAME FROM ROLES ORDER BY ID");
-$sth->execute();
-foreach ($sth->fetchAll() as $role) {
-   $rolearray[$role['ID']] = $role['NAME'];
-};
-
 //Is ID numberic ?
 if ( is_numeric($id) ) {
 	// Get user from DB

@@ -21,19 +21,22 @@ if (is_numeric($_GET["id"])) {
       $post = 0;
       $post_message = '';
       try{
-         // Has password been updated ?
-         if ( $_POST["password"] != "nochange" ) {
-            // Password validation and hash creation
-            $hash = password_func($_POST["password"],$_POST["password2"]);
-            // Write hash to DB
-            $sth = $dbh->prepare("UPDATE USERS SET HASH = ? WHERE ID = ?");
-            $sth->bindParam(1,$hash); 
-            $sth->bindParam(2,$id); 
-            $sth->execute();
-            $post_message .= '"Password" ';
-            $post ++;
+         // Only allow password changes in local mode
+         if ($mode == 'local') {
+            // Has password been updated ?
+            if ( $_POST["password"] != "nochange" ) {
+               // Password validation and hash creation
+               $hash = password_func($_POST["password"],$_POST["password2"]);
+               // Write hash to DB
+               $sth = $dbh->prepare("UPDATE USERS SET HASH = ? WHERE ID = ?");
+               $sth->bindParam(1,$hash); 
+               $sth->bindParam(2,$id); 
+               $sth->execute();
+               $post_message .= '"Password" ';
+               $post ++;
+            };
          };
-
+         
          // Has role been updated ?
          if (! is_numeric($_POST["role"]) || ! array_key_exists($_POST["role"],$rolearray) ) {
             throw new Exception('Invalid role ID'); 
@@ -75,6 +78,22 @@ if (is_numeric($_GET["id"])) {
       $contents .= $post_message;
    } ;
    if ( isset($error) ) {$contents .= $error;}; // did an error occur ?
+
+   // Only allow password changes in local mode
+   $passtd = '';
+   if ($mode == 'local') {   
+      $passtd = <<<EOD
+      <tr class="even">
+         <td>Change Password</td>
+         <td><input type="password" name="password" class="input" maxlength="30" value="nochange"></td>
+      </tr>
+      <tr class="odd">
+         <td>Confirm Password</td>
+         <td><input type="password" name="password2" class="input" maxlength="30" value="nochange"></td>
+      </tr>\n
+EOD;
+   };
+      
    
    // User info
    $contents .= <<<EOD
@@ -88,14 +107,7 @@ if (is_numeric($_GET["id"])) {
          <td>$created_by</td>
          <td>$date_added</td>
       </tr>
-      <tr class="even">
-         <td>Change Password</td>
-         <td><input type="password" name="password" class="input" maxlength="30" value="nochange"></td>
-      </tr>
-      <tr class="odd">
-         <td>Confirm Password</td>
-         <td><input type="password" name="password2" class="input" maxlength="30" value="nochange"></td>
-      </tr>
+$passtd
       <tr class="even">
          <td>Role</td>
          <td>

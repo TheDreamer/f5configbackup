@@ -61,6 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
                   };
                };
                
+               // See if user is in local DB if no group found
+               if ( ! isset($role) ) {
+                  $sth = $dbh->prepare("SELECT ROLE FROM USERS WHERE NAME = ?");
+                  $sth->bindParam(1,$_POST["username"]); 
+                  $sth->execute();
+                  $row = $sth->fetch();
+                  $role = $row['ROLE'];
+                  if (strlen($role)) { $login = 1; };
+               };
+                  
                // If not in a group then give error
                if ( ! isset($login) ) {$error = "Login Failed.";};
             } else {

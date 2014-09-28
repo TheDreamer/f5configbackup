@@ -24,9 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Create") {
          throw new Exception("Username \"$username\" already exists.");
       };
       
-      // Password validation and hash creation
-      $hash = password_func($_POST["password"],$_POST["password2"]);
-
+      // No password if auth mode is AD
+      if ($mode == 'local') {
+         // Password validation and hash creation
+         $hash = password_func($_POST["password"],$_POST["password2"]);
+      } else {
+         $hash = 'NULL';
+      };
+      
       // Validate that role ID is valid
       if (! is_numeric($_POST["role"]) || ! array_key_exists($_POST["role"],$rolearray) ) {
          throw new Exception('Invalid role ID'); 
@@ -52,13 +57,21 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Create") {
 } else {
    // Page body - Create
    $roleselect = roleselect($rolearray,$row['ROLE']);
+   
+   $passtd = '';
+   if ($mode == 'local') {
+      $passtd = <<<EOD
+         <tr class="even"><td>Password</td><td><input type="password" name="password" class="input" maxlength="30"></td></tr>
+         <tr class="odd"><td>Confirm Password</td><td><input type="password" name="password2" class="input" maxlength="30"></td></tr>  
+EOD;
+   };
+
    $contents = <<<EOD
       <form action="users.php?page=Add" method="post">
       <table class="pagelet_table">
          <tr class="pglt_tb_hdr"><td colspan="2">Create New User</td></tr>
          <tr class="odd"><td>User Name</td><td><input type="text" name="username" class="input" maxlength="30"></td></tr>
-         <tr class="even"><td>Password</td><td><input type="password" name="password" class="input" maxlength="30"></td></tr>
-         <tr class="odd"><td>Confirm Password</td><td><input type="password" name="password2" class="input" maxlength="30"></td></tr>
+$passtd
          <tr class="even"><td>Role</td><td>
             <select name="role">
                $roleselect

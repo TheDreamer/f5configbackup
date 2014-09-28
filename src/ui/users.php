@@ -35,6 +35,11 @@ foreach ($sth->fetchAll() as $role) {
    $rolearray[$role['ID']] = $role['NAME'];
 };
 
+// What auth mode is set ?
+$sth = $dbh->prepare("SELECT MODE FROM AUTH");
+$sth->execute();
+$mode = $sth->fetchColumn();
+
 // Is this the default page ?
 if ( isset($_GET["page"]) ) {
    // Which 

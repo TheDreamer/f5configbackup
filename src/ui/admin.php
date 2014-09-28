@@ -21,45 +21,45 @@ $contents = '';
 
 // Update post processing
 if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Update") {
-	// Is this an update and has password been updated ?
+   // Is this an update and has password been updated ?
 
-	$dbh->beginTransaction();
-	try {
-		// Was password really changed ?
-		if ( $_POST["password"] == "nochange" ) {
-			throw new Exception("Password was not changed.");
-		};
-		// Password validation and hash creation
-		$hash = password_func($_POST["password"],$_POST["password2"]);
-		
-		// Write hash to DB
-		$sth = $dbh->prepare("UPDATE ADMIN SET HASH = ? WHERE ID = 1");
-		$sth->bindParam(1,$hash); 
-		$sth->execute();
-		$contents = "<p>Admin password has been updated.</p>";
+   $dbh->beginTransaction();
+   try {
+      // Was password really changed ?
+      if ( $_POST["password"] == "nochange" ) {
+         throw new Exception("Password was not changed.");
+      };
+      // Password validation and hash creation
+      $hash = password_func($_POST["password"],$_POST["password2"]);
+      
+      // Write hash to DB
+      $sth = $dbh->prepare("UPDATE ADMIN SET HASH = ? WHERE ID = 1");
+      $sth->bindParam(1,$hash); 
+      $sth->execute();
+      $contents = "<p>Admin password has been updated.</p>";
 
-		$dbh->commit();
-	} catch (Exception $e) {
-		$dbh->rollBack();
-		$contents = $e->getMessage();
-		$contents = "<p class=\"error\"><strong>Error:</strong> $contents </p>\n";
-	};
+      $dbh->commit();
+   } catch (Exception $e) {
+      $dbh->rollBack();
+      $contents = $e->getMessage();
+      $contents = "<p class=\"error\"><strong>Error:</strong> $contents </p>\n";
+   };
 };
 
 // User info
 $contents .= <<<EOD
-	<form action="admin.php" method="post">
-	<table class="pagelet_table">
-		<tr class="pglt_tb_hdr"><td colspan="2">Admin User</td></tr>
-		<tr class="even"><td>Change Password</td>
-			<td><input type="password" name="password" class="input" maxlength="30" value="nochange"></td>
-		</tr>
-		<tr class="odd"><td>Confirm Password</td>
-			<td><input type="password" name="password2" class="input" maxlength="30" value="nochange"></td>
-		</tr>
-	</table>
-	<input type="submit" name="change" value="Update">
-	</form>\n
+   <form action="admin.php" method="post">
+   <table class="pagelet_table">
+      <tr class="pglt_tb_hdr"><td colspan="2">Admin User</td></tr>
+      <tr class="even"><td>Change Password</td>
+         <td><input type="password" name="password" class="input" maxlength="30" value="nochange"></td>
+      </tr>
+      <tr class="odd"><td>Confirm Password</td>
+         <td><input type="password" name="password2" class="input" maxlength="30" value="nochange"></td>
+      </tr>
+   </table>
+   <input type="submit" name="change" value="Update">
+   </form>\n
 EOD;
 
 $title = "System";

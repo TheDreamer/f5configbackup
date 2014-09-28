@@ -16,12 +16,19 @@ $permissions = array(1);
 include("include/session.php");
 include("include/dbconnect.php");
 
+// Build Role array
+$sth = $dbh->query("SELECT ID,NAME FROM ROLES ORDER BY ID");
+$sth->execute();
+foreach ($sth->fetchAll() as $role) {
+   $rolearray[$role['ID']] = $role['NAME'];
+};
+
 // Show me a specific group
 if ( isset($_GET["id"]) ) {
    include ("include/authgrp_single.php");
 } else {
    // Get auth groups
-   $sth = $dbh->query("SELECT ID,NAME FROM AUTHGROUPS ORDER BY ORD");
+   $sth = $dbh->query("SELECT ID,NAME,ROLE FROM AUTHGROUPS ORDER BY ORD");
    $sth->execute();
    $groups = $sth->fetchAll();
 
@@ -31,10 +38,11 @@ if ( isset($_GET["id"]) ) {
    <form action="authgrpmod.php" method="get">
    <table class="pagelet_table">
    <tr class="pglt_tb_hdr">
-         <td>
-            <input type="checkbox" name="" value="" checked disabled="disabled">
-         </td>
-         <td>Group</td>
+      <td>
+         <input type="checkbox" name="" value="" checked disabled="disabled">
+      </td>
+      <td>Group</td>
+      <td>Role</td>
       <td>Order</td>
    </tr> \n
 EOD;
@@ -45,6 +53,7 @@ EOD;
    foreach ($groups as $i) {
       $id = $i['ID'];
       $name = $i['NAME'];
+      $role = $rolearray[$i['ROLE']];
       $class = "even_ctr";
       if ($count & 1 ) {$class = "odd_ctr";};
       
@@ -67,6 +76,7 @@ EOD;
    <tr class="$class">
       <td><input type="checkbox" name="id[]" value="$id"></td>
       <td><a href="authgrp.php?id=$id">$name</a></td>
+      <td>$role</td>
       <td>
 $button
       </td>
