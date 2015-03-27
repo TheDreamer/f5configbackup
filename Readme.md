@@ -28,4 +28,4 @@ I've been doing to our appliance to make the needs of my employer.*
 - [ ] ~~Create FreeBSD port~~
 
 Twitter: [LawrenceChen](https://twitter.com/LawrenceChen)<br />
-Primary Blog: http://lawrencechen.net -- Secondary Blog: http://beastie.tardis.com -- (active/active :smirk:)
+Primary Blog: http://lawrencechen.net -- Secondary Blog: http://beastie.tardis.com -- (standby/standby pair :smirk:)
