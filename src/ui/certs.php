@@ -130,9 +130,14 @@ EOD;
 } else {
 // Else get all certs
    // If not present device list
-   $contents = "\t\t<table class=\"pagelet_table\">\n";
-   $contents .= "\t\t<tr class=\"pglt_tb_hdr\"><td>Cert Name</td><td>Device</td>";
-   $contents .= "<td>CN</td><td>Expiration (GMT)</td></tr>\n";
+   $contents = "\t\t<script language='Javascript1.2' src='js/tablesort-min.js'></script>\n";
+   $contents .= "\t\t<table class=\"pagelet_table\">\n";
+   $contents .= "\t\t<thead class=\"pglt_tb_hdr\">\n";
+   $contents .= "\t\t\t<td class=\"nocase\">Cert Name</td>\n";
+   $contents .= "\t\t\t<td class=\"nocase\">Device</td>\n";
+   $contents .= "\t\t\t<td class=\"nocase\">CN</td>\n";
+   $contents .= "\t\t\t<td class=\"nocase\">Expiration (GMT)</td>\n";
+   $contents .= "\t\t</thead>\n";
 
    // Get list of certs from DB
    $sql = "SELECT ID,NAME,DEVICE,SUB_CN,EXPIRE FROM CERTS ORDER BY EXPIRE";

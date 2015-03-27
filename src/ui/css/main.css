@@ -159,11 +159,11 @@ table.pagelet_table td {
    font-size:15px;
    padding:2px 12px 2px 12px;
 }
-tr.pglt_tb_hdr {
+thead.pglt_tb_hdr, tr.pglt_tb_hdr {
    height: 25px;
    background-image: url('/images/table_hdr.png');
 }
-tr.pglt_tb_hdr td{
+thead.pglt_tb_hdr, tr.pglt_tb_hdr td{
    text-align: center;
    border: 1px solid #999999;
 }

@@ -13,20 +13,21 @@ if ( isset($_GET["id"]) ) {
 } else {
 // If prama id not present, the show device list
 	$contents = <<<EOD
+	<script language='Javascript1.2' src='js/tablesort-min.js'></script>
 	<table class="pagelet_table">
-		<tr class="pglt_tb_hdr">
+		<thead class="pglt_tb_hdr">
 			<td>
 			<input type="checkbox" name="" value="" checked disabled="disabled">
 			</td>
-			<td>Name</td>
-			<td>IP</td>
-		</tr>
+			<td class="nocase">Name</td>
+			<td class="nocase">IP</td>
+		</thead>
 	<form action="devicemod.php" method="get">
 EOD;
 
 	// loop through array to make device table
 	$count = 1;
-	foreach ($dbcore->query("SELECT NAME,ID,IP FROM DEVICES ORDER BY NAME") as $row) {
+	foreach ($dbcore->query("SELECT NAME,ID,IP FROM DEVICES ORDER BY IP") as $row) {
 		$name = $row['NAME'];
 		$id = $row['ID'];
 		$ip = $row['IP'];
