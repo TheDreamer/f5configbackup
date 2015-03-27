@@ -12,7 +12,7 @@ This is a fork of the [f5configbackup sourceforge project](https://sourceforge.n
 >This program is free software, you can redistribute it and/or modify it under the terms of the GNU General Public License
 >as published by the Free Software Foundation, either version 2 of the License, or any later version.
 >
->Twitter: [nerdoftech](https://twitter.com/nerdoftech) -- Web: http://nerdof.technology
+>Twitter: [nerdoftech](https://twitter.com/nerdoftech) &mdash; Web: http://nerdof.technology
 
 *Whether an appliance or other delivery is possible from this fork, is unknown.  This is just to save some of the fiddling
 I've been doing to our appliance to make the needs of my employer.*
@@ -28,4 +28,4 @@ I've been doing to our appliance to make the needs of my employer.*
 - [ ] ~~Create FreeBSD port~~
 
 Twitter: [LawrenceChen](https://twitter.com/LawrenceChen)<br />
-Primary Blog: http://lawrencechen.net -- Secondary Blog: http://beastie.tardis.com -- (standby/standby pair :smirk:)
+Blog: Primary: http://lawrencechen.net &mdash; Secondary: http://beastie.tardis.com &mdash; (standby/standby&nbsp;pair)&nbsp;:smirk:
