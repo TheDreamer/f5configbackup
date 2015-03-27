@@ -101,14 +101,15 @@ and inserts into DB.
          e = sys.exc_info()[1]
          self.log.error('Can\'t update DB: add_error - %s' % e)
    
-   def getcreds(self,key):
+   def getcreds(self,key,id=0):
       '''
-getcreds(key) - Gets user credentials from DB 
+getcreds(key, id=0) - Gets user credentials from DB 
 args - key: encryption key used by m2secret 
+id - device id of creds to fetch, default is for default creds
 Return - dict of creds
       '''
       # Get user and encypted pass from DB, convert to dict of str types
-      self.dbc.execute("SELECT NAME,PASS FROM BACKUP_USER")
+      self.dbc.execute("SELECT NAME,PASS FROM BACKUP_USER WHERE ID = %d" % id)
       raw_creds = dict(zip( ['name','passwd'], [str(i) for i in self.dbc.fetchone()] ))
       
       # Decrypt pass and return dict of creds
@@ -299,7 +300,7 @@ def main():
    try:
       with open(sys.path[0] + '/.keystore/backup.key','r') as psfile:
          cryptokey =  psfile.readline().rstrip()
-      creds = job.getcreds(cryptokey)
+      creds0 = job.getcreds(cryptokey)
    except:
       e = sys.exc_info()[1]
       log.critical('Can\'t get credentials from DB - %s' % e)
@@ -359,6 +360,15 @@ def main():
       else:
          log.debug('Created device directory %s/devices/%s' % (sys.path[0],dev['name']))
       
+      # Get credentials for device from DB, if failure use global
+      log.debug('Retrieving credentials from DB.')
+      try:
+         with open(sys.path[0] + '/.keystore/backup.key','r') as psfile:
+            cryptokey =  psfile.readline().rstrip()
+         creds = job.getcreds(cryptokey,dev['id'])
+      except:
+	 creds = creds0
+
       # Get IP for device or keep hostname if NULL
       ip = dev['name'] if dev['ip'] == 'NULL' else dev['ip']
       
@@ -437,6 +447,7 @@ def main():
    
    # Clear creds & key
    creds = None
+   creds0 = None
    cryptokey = None
    
    #  Add deletion note to log file
@@ -470,3 +481,4 @@ def main():
    # Clear objects
    log.close()
    del log,job,date,dbc,db
+
