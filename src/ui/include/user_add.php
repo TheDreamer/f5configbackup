@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Create") {
 	
 } else {
 	// Page body - Create
-	$roleselect = roleselect($rolearray,$row['ROLE']);
+	$roleselect = roleselect($rolearray,4);
 	$contents = <<<EOD
 		<form action="users.php?page=Add" method="post">
 		<table class="pagelet_table">
