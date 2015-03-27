@@ -27,5 +27,5 @@ I've been doing to our appliance to make the needs of my employer.*
 - [ ] Add additional reporting to replace what we had been doing directly on the F5 using bigpipe
 - [ ] ~~Create FreeBSD port~~
 
-Twitter: [LawrenceChen](https://twitter.com/LawrenceChen)
+Twitter: [LawrenceChen](https://twitter.com/LawrenceChen)<br />
 Primary Blog: http://lawrencechen.net -- Secondary Blog: http://beastie.tardis.com -- (active/active :smirk:)
