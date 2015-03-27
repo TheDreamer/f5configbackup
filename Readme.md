@@ -23,6 +23,7 @@ I've been doing to our appliance to make the needs of my employer.*
 - [ ] change UI to support above
 - [x] sort Devices table by IP, and make table sortable
 - [x] also make Certificates table sortable
+- [x] also make Users table sortable
 - [ ] Present client certificate should it become necessary
 - [ ] Use (our) LDAP for user authentication
 - [ ] Customize Reporting

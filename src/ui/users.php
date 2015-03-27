@@ -57,14 +57,15 @@ if ( isset($_GET["page"]) ) {
 
 	// Build user table
 	$contents = <<<EOD
+	<script language='Javascript1.2' src='js/tablesort-min.js'></script>
 	<form action="users.php" method="get">
 	<table class="pagelet_table">
-		<tr class="pglt_tb_hdr">
+		<thead class="pglt_tb_hdr">
 			<td>
 				<input type="checkbox" name="" value="" checked disabled="disabled">
 			</td>
-			<td>Name</td>
-			<td>Role</td>
+			<td class="nocase">Name</td>
+			<td class="nocase">Role</td>
 		</tr> 
 EOD;
 
