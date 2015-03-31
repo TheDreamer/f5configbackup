@@ -24,9 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
          if (is_numeric($i)) {
             //Delete from DB
             $sth = $dbcore->prepare("DELETE FROM DEVICES WHERE ID = ?");
-            $sth->bindValue(1,$i); 
+            $sth->bindValue(1,$i);
             $sth->execute();
          
+            $sth = $dbcore->prepare("DELETE FROM BACKUP_USER WHERE ID = ?");
+            $sth->bindValue(1,$i);
+            $sth->execute();
+
             // Add to list on page
             $dev = $devarray[$i];
             $contents .= "\t\t<li>$dev\n";

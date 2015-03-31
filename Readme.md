@@ -20,7 +20,7 @@ I've been doing to our appliance to make the needs of my employer.*
 **Changes**
 
 - [x] backup all F5 instances, where each pair has their own user/password pair
-- [ ] change UI to support above
+- [w] change UI to support above
 - [x] sort Devices table by IP, and make table sortable
 - [x] also make Certificates table sortable
 - [x] also make Users table sortable
@@ -29,6 +29,9 @@ I've been doing to our appliance to make the needs of my employer.*
 - [ ] Customize Reporting
 - [ ] Add additional reporting to replace what we had been doing directly on the F5 using bigpipe
 - [ ] ~~Create FreeBSD port~~
+
+_device add and device delete have been extended to handle the possibility of a device specific backup user account.
+Still working out how to handle possibility of needing to change passwords._
 
 Twitter: [LawrenceChen](https://twitter.com/LawrenceChen)<br />
 Blog: Primary: http://lawrencechen.net &mdash; Secondary: http://beastie.tardis.com &mdash; (standby/standby&nbsp;pair)&nbsp;:smirk:
