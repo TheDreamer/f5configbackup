@@ -30,7 +30,7 @@ I've been doing to our appliance to make the needs of my employer.*
 - [ ] Add additional reporting to replace what we had been doing directly on the F5 using bigpipe
 - [ ] ~~Create FreeBSD port~~
 
-:1: _device add and device delete have been extended to handle the possibility of a device specific backup user account.
+:one: _device add and device delete have been extended to handle the possibility of a device specific backup user account.
 Still working out how to handle possibility of needing to change passwords (or other device related parameters)._
 
 Twitter: [LawrenceChen](https://twitter.com/LawrenceChen)<br />
