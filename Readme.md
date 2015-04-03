@@ -20,7 +20,7 @@ I've been doing to our appliance to make the needs of my employer.*
 **Changes**
 
 - [x] backup all F5 instances, where each pair has their own user/password pair
-- [x] change UI to support above <sup>1</sup>
+- [x] change UI to support above, includes being able to make device configuration edits
 - [x] sort Devices table by IP, and make table sortable
 - [x] also make Certificates table sortable
 - [x] also make Users table sortable
@@ -32,8 +32,3 @@ I've been doing to our appliance to make the needs of my employer.*
 
 Twitter: [LawrenceChen](https://twitter.com/LawrenceChen)<br />
 Blog: Primary: http://lawrencechen.net &mdash; Secondary: http://beastie.tardis.com &mdash; (standby/standby&nbsp;pair)&nbsp;:smirk:
-
------
-
-:one: _device add and device delete have been extended to handle the possibility of a device specific backup user account.
-Still working out how to handle possibility of needing to change passwords (or other device related parameters)._
