@@ -96,6 +96,26 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
 				row3.style.display = "none";
 			}
 		}
+		function myCheckPass() {
+                        // Store the password field objects into variables
+                        var pass1 = document.getElementById('password');
+                        var pass2 = document.getElementById('password2');
+                        // Store the Confirmation Message Object
+                        var message = document.getElementById('passfail');
+                        // Set the colors we will be using ...
+                        var goodColor = "#859900";
+                        var badColor = "#dc322f";
+                        // Compare the values in the password fields and the confirmation field
+                        if(pass1.value == pass2.value) {
+                                pass2.style.backgroundColor = goodColor;
+                                message.style.color = goodColor;
+                                message.innerHTML = "Match!";
+                        } else {
+                                pass2.style.backgroundColor = badColor;
+                                message.style.color = badColor;
+                                message.innerHTML = "No Match!";
+                        }
+                }
 		</script>
 		<table class="pagelet_table">
 			<tr class="pglt_tb_hdr"><td colspan="2">Add New Device</td></tr>
@@ -125,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
 			</tr>
 			<tr class="odd" id="DevSpecThree" style="display:none;">
 				<td>Confirm Backup Password</td>
-				<td><input type="password" name="password2" id="password2" class="input" maxlength="50"></td>
+				<td><input type="password" name="password2" id="password2" class="input" maxlength="50" onkeyup="myCheckPass()"><span id="passfail" class="passfail"></span></td>
 			</tr>
 		</table>
 		<input type="submit" name="change" value="Add">
