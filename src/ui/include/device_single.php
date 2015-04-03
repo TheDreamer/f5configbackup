@@ -1,5 +1,8 @@
 <?php
 
+// RBAC permissions
+$modperms = array(1,2);
+
 include ("include/functions.php");
 
 // Check ID query param, error page if not number
@@ -49,7 +52,7 @@ if (is_numeric($ID)) {
 	}
 
 	// Update post processing
-	if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Update") {
+	if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Update" && in_array($_SESSION['role'],$modperms)) {
 		$dbcore->beginTransaction();
 		$post = 0;
 		$post_message = '';
@@ -252,100 +255,103 @@ EOD;
 	};
 	$contents .= "\t</table>\n";
 
-	$dnschecked = ($ip == "DNS") ? "checked" : "";
-	$showip = ($ip == "DNS") ? "" : $ip;
-	$dsbachecked = ($dsba) ? "checked" : "";
-	$dsb_ipass = ($dsba) ? "nochange" : "";
+	if (in_array($_SESSION['role'],$modperms)
+	{
+		$dnschecked = ($ip == "DNS") ? "checked" : "";
+		$showip = ($ip == "DNS") ? "" : $ip;
+		$dsbachecked = ($dsba) ? "checked" : "";
+		$dsb_ipass = ($dsba) ? "nochange" : "";
 
 	$contents .= <<<EOD
-		<br />
-		<form action "devices.php?page=device&id=$ID" method="post">
-		<script type="text/javascript">
-		function dShowHideDSBAf() {
-			var target = document.getElementById("dsba_check");
-			var trs = document.getElementsByTagName("tr");
-			
-			for (i=0;i<trs.length;i++) {
-				if (trs[i].getAttribute("name") == "dsba") {
-					trs[i].style.display = ((target.checked) ? '' : 'none');
-				}
-			}
+<br />
+<form action "devices.php?page=device&id=$ID" method="post">
+<script type="text/javascript">
+function dShowHideDSBAf() {
+	var target = document.getElementById("dsba_check");
+	var trs = document.getElementsByTagName("tr");
+	
+	for (i=0;i<trs.length;i++) {
+		if (trs[i].getAttribute("name") == "dsba") {
+			trs[i].style.display = ((target.checked) ? '' : 'none');
 		}
-		function dShowHideDMform() {
-			var target = document.getElementById("dmodify");
-			var target2 = document.getElementById("dsba_check");
-			var trs = document.getElementsByTagName("tr");
-			var submit = document.getElementById("dmsubmit");
-			var gAttr;
+	}
+}
+function dShowHideDMform() {
+	var target = document.getElementById("dmodify");
+	var target2 = document.getElementById("dsba_check");
+	var trs = document.getElementsByTagName("tr");
+	var submit = document.getElementById("dmsubmit");
+	var gAttr;
 
-			for (i=0;i<trs.length;i++) {
-				if ((gAttr = trs[i].getAttribute("name")) == "dmod") {
-					trs[i].style.display = ((target.checked) ? '' : 'none');
-				} else if (gAttr == "dsba") {
-					trs[i].style.display = ((target2.checked) ? '' : 'none');
-				}
-			}
-			dmsubmit.style.display = ((target.checked) ? '' : 'none');
-			dmsubmit.disabled = ((target.checked) ? false:true);
+	for (i=0;i<trs.length;i++) {
+		if ((gAttr = trs[i].getAttribute("name")) == "dmod") {
+			trs[i].style.display = ((target.checked) ? '' : 'none');
+		} else if (gAttr == "dsba") {
+			trs[i].style.display = ((target2.checked) ? '' : 'none');
 		}
-		function dCheckPass() {
-			// Store the password field objects into variables
-			var pass1 = document.getElementById('password');
-			var pass2 = document.getElementById('password2');
-			// Store the Confirmation Message Object
-			var message = document.getElementById('dsb_pass_ok');
-			// Set the colors we will be using ...
-			var goodColor = "#859900";
-			var badColor = "#dc322f";
-			// Compare the values in the password fields and the confirmation field
-			if(pass1.value == pass2.value) {
-				pass2.style.backgroundColor = goodColor;
-				message.style.color = goodColor;
-				message.innerHTML = "Match!";
-			} else {
-				pass2.style.backgroundColor = badColor;
-				message.style.color = badColor;
-				message.innerHTML = "No Match!";
-			}
-		}
-		</script>
-		<table class="pagelet_table">
-			<tr class="pglt_tb_hdr">
-				<td>Modify Device Configuration</td>
-				<td><input type="checkbox" name="dmodify" id="dmodify" value="NULL" onclick="dShowHideDMform()"></td>
-			</tr>
-			<tr name="dmod" class="odd" style="display:none;">
-				<td>Device Name</td>
-				<td><input type="text" name="name" class="input" maxlength="50" value="$name" readonly="readonly"></td>
-			</tr>
-			<tr name="dmod" class="even" style="display:none;">
-				<td>Use DNS name ?</td>
-				<td><input type="checkbox" name="dns" value="NULL" $dnschecked></td>
-			</tr>
-			<tr name="dmod" class="odd" style="display:none;">
-				<td>IP Address</td>
-				<td><input type="text" name="ip" id="ip" class="input" maxlength="20" value="$showip"></td>
-			</tr>
-			<tr name="dmod" class="even" style="display:none;">
-				<td>Device Specific Backup Account ?</td>
-				<td><input type="checkbox" name="dsba_check" id="dsba_check" value="NULL" $dsbachecked onclick="dShowHideDSBAf()"></td>
-			</tr>
-			<tr name="dsba" class="odd" style="display:none;">
-				<td>Specific Backup User</td>
-				<td><input type="text" name="user" id="user" class="input" maxlength="50" value="$dsb_name"></td>
-			</tr>
-			<tr name="dsba" class="even" style="display:none;">
-				<td>Specific Backup Password</td>
-				<td><input type="password" name="password" id="password" class="input" maxlength="50" value="$dsb_ipass"></td>
-			</tr>
-			<tr name="dsba" class="odd" style="display:none;">
-				<td>Confirm Backup Password</td>
-				<td><input type="password" name="password2" id="password2" class="input" maxlength="50" value="$dsb_ipass" onkeyup="dCheckPass()"><span id="dsb_pass_ok" class="dsb_pass_ok"></span></td>
-			</tr>
-		</table>
-		<input type="submit" name="change" id="dmsubmit" value="Update" style="display:none;" disabled>
-		</form>
+	}
+	dmsubmit.style.display = ((target.checked) ? '' : 'none');
+	dmsubmit.disabled = ((target.checked) ? false:true);
+}
+function dCheckPass() {
+	// Store the password field objects into variables
+	var pass1 = document.getElementById('password');
+	var pass2 = document.getElementById('password2');
+	// Store the Confirmation Message Object
+	var message = document.getElementById('dsb_pass_ok');
+	// Set the colors we will be using ...
+	var goodColor = "#859900";
+	var badColor = "#dc322f";
+	// Compare the values in the password fields and the confirmation field
+	if(pass1.value == pass2.value) {
+		pass2.style.backgroundColor = goodColor;
+		message.style.color = goodColor;
+		message.innerHTML = "Match!";
+	} else {
+		pass2.style.backgroundColor = badColor;
+		message.style.color = badColor;
+		message.innerHTML = "No Match!";
+	}
+}
+</script>
+<table class="pagelet_table">
+	<tr class="pglt_tb_hdr">
+		<td>Modify Device Configuration</td>
+		<td><input type="checkbox" name="dmodify" id="dmodify" value="NULL" onclick="dShowHideDMform()"></td>
+	</tr>
+	<tr name="dmod" class="odd" style="display:none;">
+		<td>Device Name</td>
+		<td><input type="text" name="name" class="input" maxlength="50" value="$name" readonly="readonly"></td>
+	</tr>
+	<tr name="dmod" class="even" style="display:none;">
+		<td>Use DNS name ?</td>
+		<td><input type="checkbox" name="dns" value="NULL" $dnschecked></td>
+	</tr>
+	<tr name="dmod" class="odd" style="display:none;">
+		<td>IP Address</td>
+		<td><input type="text" name="ip" id="ip" class="input" maxlength="20" value="$showip"></td>
+	</tr>
+	<tr name="dmod" class="even" style="display:none;">
+		<td>Device Specific Backup Account ?</td>
+		<td><input type="checkbox" name="dsba_check" id="dsba_check" value="NULL" $dsbachecked onclick="dShowHideDSBAf()"></td>
+	</tr>
+	<tr name="dsba" class="odd" style="display:none;">
+		<td>Specific Backup User</td>
+		<td><input type="text" name="user" id="user" class="input" maxlength="50" value="$dsb_name"></td>
+	</tr>
+	<tr name="dsba" class="even" style="display:none;">
+		<td>Specific Backup Password</td>
+		<td><input type="password" name="password" id="password" class="input" maxlength="50" value="$dsb_ipass"></td>
+	</tr>
+	<tr name="dsba" class="odd" style="display:none;">
+		<td>Confirm Backup Password</td>
+		<td><input type="password" name="password2" id="password2" class="input" maxlength="50" value="$dsb_ipass" onkeyup="dCheckPass()"><span id="dsb_pass_ok" class="dsb_pass_ok"></span></td>
+	</tr>
+</table>
+<input type="submit" name="change" id="dmsubmit" value="Update" style="display:none;" disabled>
+</form>
 EOD;
+	}
 } else {
 // Error message if id is not number
 	$contents = "<p><strong>Error:</strong> \"$ID\" is not a valid input</p>\n";
