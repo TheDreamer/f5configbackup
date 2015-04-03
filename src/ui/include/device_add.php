@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
 	} elseif ($dsa_set && ($password != $password2)) {
 		$contents .= "Backup User passwords do not match";
 	} elseif ($dsa_set && ($user == "" || $password == "")) {
-		$contents .+ "Both the Backup user's name and the Backup user's password need to be provided";
+		$contents .= "Both the Backup user's name and the Backup user's password need to be provided";
 	} else {
 		$name = $_POST["name"];
 		$ip = $_POST["ip"];
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && $_POST["change"] == "Add") {
 			</tr>
 			<tr class="even">
 				<td>Have Specific Backup Acct ?</td>
-				<td><input type="checkbox" name="DevSpecAcct" id="DevSpecAcct" class="input" onclick="myShowHide()"></td>
+				<td><input type="checkbox" name="DevSpecAcct" id="DevSpecAcct" value="NULL" onclick="myShowHide()"></td>
 			</tr>
 			<tr class="odd" id="DevSpecOne" style="display:none;">
 				<td>Specific Backup User</td>
