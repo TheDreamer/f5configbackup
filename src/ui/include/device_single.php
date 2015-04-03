@@ -255,7 +255,7 @@ EOD;
 	};
 	$contents .= "\t</table>\n";
 
-	if (in_array($_SESSION['role'],$modperms)
+	if (in_array($_SESSION['role'],$modperms))
 	{
 		$dnschecked = ($ip == "DNS") ? "checked" : "";
 		$showip = ($ip == "DNS") ? "" : $ip;
